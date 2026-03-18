@@ -56,14 +56,8 @@ td.to-sell {
 <body>
   <h1>Калькулятор розподілу плану</h1>
 <br><br>
-  <img src="./logo.svg" alt="logo" width="560">
-  <label>Співробітник:
-    <select id="userSelect">
-      <option value="fedir">Олександр</option>
-      <option value="olena">Тетяна</option>
-      <option value="office">Офіс</option>
-    </select>
-  </label>
+  <img src="./logo.svg" alt="logo" width="360">
+  
   <label>Партнер:
     <select id="partnerSelect"></select>
   </label>
@@ -86,16 +80,36 @@ td.to-sell {
   <div id="allPartnersClassification"></div>
   <div id="classification"></div>
   <div id="historyPlans"></div>
-
+ <img src="./ph.png" alt="logo" width="360">
 
 <canvas id="planChart" width="400" height="200" color="white"></canvas>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module">
+ const userNames = {
+  fedir: "Олександр Красніков",
+  olena: "Тетяна Романовська",
+  office: "Офіс",
+  andriy: "Тетяна Кліменко",
+  maria: "Тетяна Демус",
+  serhiy: "Ілона Бабенко"
+};
+
 const userMap = {
   fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
   olena: [11,53,45,146,181,27,601,108,10],
-  office: [1,2,3,4,5]
+  office: [1,2,3,4,5],
+  andriy: [13,12,45,98,26],
+  maria: [112,34,56,78,90],
+  serhiy: [63,54,87,32,19]
 };
+const currentUser = localStorage.getItem("currentUser");
+if (!currentUser) {
+  alert("Будь ласка, увійдіть спочатку!");
+  window.location.href = "index.html";
+} else {
+  const displayName = userNames[currentUser] || currentUser;
+  document.body.insertAdjacentHTML("afterbegin", "<p>Ви увійшли як: " + displayName + "</p>");
+}
 
 function getHistoryUrl(user) {
   if (user === "fedir") {
@@ -104,10 +118,17 @@ function getHistoryUrl(user) {
     return "https://docs.google.com/spreadsheets/d/1EeL08aCAa5PCwIYAtN49hQQibp5otMEm";
   } else if (user === "office") {
     return "https://docs.google.com/spreadsheets/d/1ju1NDfqXREsb56FuYlVTv8kei4eL5rhW";
+  } else if (user === "andriy") {
+    return "https://docs.google.com/spreadsheets/d/1AAAAAAAAAAAAAAAAAAAA"; // свій URL
+  } else if (user === "maria") {
+    return "https://docs.google.com/spreadsheets/d/1BBBBBBBBBBBBBBBBBBBB"; // свій URL
+  } else if (user === "serhiy") {
+    return "https://docs.google.com/spreadsheets/d/1CCCCCCCCCCCCCCCCCCCC"; // свій URL
   }
   return null;
 }
 
+const historyUrl = getHistoryUrl(currentUser);
 async function fetchPartners(morionUrl) {
   const url = `${morionUrl}/gviz/tq?tqx=out:json&sheet=sheet1`;
   const res = await fetch(url);
@@ -138,10 +159,23 @@ async function fetchPartners(morionUrl) {
   }).filter(p => p.id && p.name && !p.name.includes("Rating"));
 }
 
+document.addEventListener("DOMContentLoaded", async () => {
+  const currentUser = localStorage.getItem("currentUser");
+  if (!currentUser) {
+    alert("Будь ласка, увійдіть спочатку!");
+    window.location.href = "index.html";
+    return;
+  }
+
+  // ініціалізація партнерів для поточного користувача
+  await initPartners(currentUser);
+});
 
 async function initPartners(user) {
   const morionUrl = "https://docs.google.com/spreadsheets/d/1CUEcXgBAUIKvg0k2JePbhSH-_S01HcEi";
   const partners = await fetchPartners(morionUrl);
+
+  console.log("▶ Отримано партнерів:", partners);
 
   localStorage.setItem("partners", JSON.stringify(partners));
 
@@ -149,6 +183,11 @@ async function initPartners(user) {
   const filtered = partners.filter(p => ids.includes(p.id));
 
   const partnerSelect = document.getElementById("partnerSelect");
+  if (!partnerSelect) {
+    console.error("Елемент partnerSelect не знайдено у DOM");
+    return;
+  }
+
   partnerSelect.innerHTML = `<option value="all">Всі партнери</option>`;
   filtered.forEach(p => {
     partnerSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
@@ -156,6 +195,7 @@ async function initPartners(user) {
 
   console.log("▶ initPartners: збережено партнерів", filtered.length);
 }
+
 
 function parseNum(v) {
   if (v === null || v === "" || v === undefined) return 0;
@@ -270,13 +310,6 @@ function classifyPartner(p, allPartners, quarter) {
   if (highHistory && !highMsr) return { type: "Прийнятний", cls: "acceptable" };
   return { type: "Заважаючий", cls: "interfering" };
 }
-
-
-const userNames = {
-  fedir: "Олександр",
-  olena: "Тетяна",
-  office: "Офіс"
-};
 
 function calculateUserTotals(planRows, partners, quarter, userKey) {
   const ids = userMap[userKey] || [];
@@ -495,9 +528,9 @@ function renderClassification(partners) {
 html += `<tr>
   <td>${p.name}</td>
   <td>${p.turnover ? formatNumber(p.turnover.toFixed(2)) : "0"}</td>
-  <td>${(p.msTable || 0).toFixed(4)*100}%</td>
+  <td>${((p.msTable || 0) * 100).toFixed(2)}%</td>
   <td>${(p.msr || 0).toFixed(2)}%</td>
-  <td>${(p.grossRate || 0).toFixed(4)*100}%</td>
+  <td>${((p.grossRate || 0) * 100).toFixed(2)}%</td>
   <td>${p.ei ? Math.round(p.ei) : 0}</td>
   <td>${p.tt  ? Math.round(p.tt) : 0}</td>
   <td class="${p.cls}">${p.type}</td>
@@ -658,9 +691,9 @@ function renderAllPartnersClassification(partners, quarter) {
       <td>${p.id}</td>
       <td>${p.name}</td>
       <td>${p.turnover}</td>
-      <td>${p.msTable ? p.msTable.toFixed(4)*100 + "%" : "0%"}</td>
+     <td>${((p.msTable || 0) * 100).toFixed(2)}%</td>
       <td>${p.msr ? p.msr.toFixed(2) + "%" : "0%"}</td>
-      <td>${p.grossRate? p.grossRate.toFixed(4)*100 + "%" : "0%"}</td>
+      <td>${((p.grossRate || 0) * 100).toFixed(2)}%</td>
       <td>${p.ei}</td>
       <td>${p.tt}</td>
        <td>${totalHistory.toLocaleString("uk-UA")}</td>
@@ -877,7 +910,7 @@ document.getElementById("calcBtn").addEventListener("click", async () => {
   const quarter = document.getElementById("quarterSelect").value;
   const historyType = document.getElementById("historyType").value;
   const partnerValue = document.getElementById("partnerSelect").value;
-  const userKey = document.getElementById("userSelect").value;
+  const userKey = localStorage.getItem("currentUser");
 
   if (partnerValue === "all") {
     alert("Оберіть конкретного партнера!");
@@ -923,47 +956,60 @@ allPartners.forEach(p => {
 });
 
 
-  const planUrlOleksandr = "https://docs.google.com/spreadsheets/d/1TtDl9d1rxAl7mCwlW7N6plVhxZYAVEk8";
-  const planUrlTetiana   = "https://docs.google.com/spreadsheets/d/1IKqln_4KSXwcTiikO48E6j3XywHoebhI";
-  const planUrlOffice    = "https://docs.google.com/spreadsheets/d/1URsMjWRwYmyy7aHtQ5EqmvD6Yct-rNmf";
-  const plans = userKey === "fedir"
-    ? await fetchPlan(planUrlOleksandr)
-    : userKey === "olena"
-      ? await fetchPlan(planUrlTetiana)
-      : await fetchPlan(planUrlOffice);
+// URL для кожного користувача
+const planUrlOleksandr = "https://docs.google.com/spreadsheets/d/1TtDl9d1rxAl7mCwlW7N6plVhxZYAVEk8";
+const planUrlTetiana   = "https://docs.google.com/spreadsheets/d/1IKqln_4KSXwcTiikO48E6j3XywHoebhI";
+const planUrlOffice    = "https://docs.google.com/spreadsheets/d/1URsMjWRwYmyy7aHtQ5EqmvD6Yct-rNmf";
+const planUrlAndriy    = "https://docs.google.com/spreadsheets/d/1XXXXXXXXXXXXXXX"; // свій URL
+const planUrlMaria     = "https://docs.google.com/spreadsheets/d/1YYYYYYYYYYYYYYY"; // свій URL
+const planUrlSerhiy    = "https://docs.google.com/spreadsheets/d/1ZZZZZZZZZZZZZZZ"; // свій URL
 
+// Функція вибору URL за користувачем
+async function getPlans(userKey) {
+  switch (userKey) {
+    case "fedir":
+      return await fetchPlan(planUrlOleksandr);
+    case "olena":
+      return await fetchPlan(planUrlTetiana);
+    case "office":
+      return await fetchPlan(planUrlOffice);
+    case "andriy":
+      return await fetchPlan(planUrlAndriy);
+    case "maria":
+      return await fetchPlan(planUrlMaria);
+    case "serhiy":
+      return await fetchPlan(planUrlSerhiy);
+    default:
+      console.warn("Невідомий користувач, використовую загальний план");
+      return await fetchPlan(planUrlOffice); // fallback
+  }
+}
+  const plans = await getPlans(userKey);
   const result = distributePlanForPartners(plans, allPartners, quarter);
 
-  const selectedPartner = result.find(p => p.id === partnerId);
-  renderAllPartnersClassification(allPartners, quarter);
-  if (selectedPartner) {
-    renderClassification([selectedPartner]);
-    renderHistoryPlans([selectedPartner], quarter, historyType);
-  } else {
-    document.getElementById("classification").innerHTML = "<p>Обраного партнера не знайдено.</p>";
-    document.getElementById("historyPlans").innerHTML = "";
-  }
+const selectedPartner = result.find(p => p.id === partnerId);
+renderAllPartnersClassification(allPartners, quarter);
+if (selectedPartner) {
+  renderClassification([selectedPartner]);
+  renderHistoryPlans([selectedPartner], quarter, historyType);
+} else {
+  document.getElementById("classification").innerHTML = "<p>Обраного партнера не знайдено.</p>";
+  document.getElementById("historyPlans").innerHTML = "";
+}
 
-  const totals = calculateUserTotals(plans, allPartners, quarter, userKey);
-  const name = userNames[userKey] || userKey;
+const totals = calculateUserTotals(plans, allPartners, quarter, userKey);
+const name = userNames[userKey] || userKey;
 
-  document.getElementById("totals").innerHTML =
-    `<h3>Суми для ${name}</h3>
-     <p>Історія ${quarter} 2025: ${totals.totalHistory}</p>
-     <p>План ${quarter} 2026: ${totals.totalPlan}</p>
-     <p>Виконано ${quarter} 2026: ${totals.totalExec}</p>
-     <p>% виконання: ${totals.percentExec}</p>`;
+document.getElementById("totals").innerHTML =
+  `<h3>Суми для ${name}</h3>
+   <p>Історія ${quarter} 2025: ${totals.totalHistory}</p>
+   <p>План ${quarter} 2026: ${totals.totalPlan}</p>
+   <p>Виконано ${quarter} 2026: ${totals.totalExec}</p>
+   <p>% виконання: ${totals.percentExec}</p>`;
 
-  renderPlanChart(plans, allPartners, quarter, userKey);
+renderPlanChart(plans, allPartners, quarter, userKey);
 });
 
-
-const initialUser = document.getElementById("userSelect").value;
-initPartners(initialUser);
-
-document.getElementById("userSelect").addEventListener("change", e => {
-  initPartners(e.target.value);
-});
 </script>
 </body> 
 </html>

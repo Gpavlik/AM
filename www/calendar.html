@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Календар планувальник</title>
+ <link rel="icon" type="image/jpg" href="bol.jpg">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #009400, #004d00);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #calendar {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 15px;
+    }
+    #addVisitForm {
+      margin: 20px auto;
+      max-width: 600px;
+      padding: 15px;
+      border: 1px solid #ffffff;
+      border-radius: 8px;
+      background: #2bac1f;
+    }
+    #addVisitForm input, #addVisitForm select, #addVisitForm button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      border-radius: 4px;
+      border: 1px solid #ffffff;
+    }
+    #addVisitForm button {
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    #addVisitForm button:hover {
+      background: #388E3C;
+    }
+    input, select {
+      border: 1px solid #ffffff;
+      padding: 4px;
+      border-radius: 4px;
+      font-size: 13px;
+      width: 100%; 
+      margin: 0px;
+      box-sizing: border-box;
+      background-color: #26a12b;
+      color: #fff;
+    }
+    :placeholder-shown {
+      background-color: #f5fdf6;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h2>Календар планувальник</h2>
+  <img src="./logo.svg" alt="logo" width="360">
+
+  <!-- Форма додавання візиту -->
+  <div id="addVisitForm">
+    <h3>Додати запланований візит</h3>
+    <label>Партнер:</label>
+    <select id="partnerSelect"></select>
+
+    <label>Дата:</label>
+    <input type="date" id="visitDate">
+
+    <label>Час:</label>
+    <input type="time" id="visitTime">
+
+    <label>Коментар:</label>
+    <input type="text" id="visitComment" placeholder="Наприклад: перемовини, підпис документів">
+
+    <button onclick="addVisit()">Додати візит</button>
+  </div>
+
+  <!-- Календар -->
+  <div id="calendar"></div>
+ <img src="./ph.png" alt="logo" width="360">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script>
+  const userNames = {
+    fedir: "Олександр Красніков",
+    olena: "Тетяна Романовська",
+    office: "Офіс",
+    andriy: "Тетяна Кліменко",
+    maria: "Тетяна Демус",
+    serhiy: "Ілона Бабенко"
+  };
+
+  const userMap = {
+    fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
+    olena: [11,53,45,146,181,27,601,108,10],
+    office: [1,2,3,4,5],
+    andriy: [13,12,45,98,26],
+    maria: [112,34,56,78,90],
+    serhiy: [63,54,87,32,19]
+  };
+
+  const currentUserKey = localStorage.getItem("currentUser");
+  if (!currentUserKey) {
+    alert("Будь ласка, увійдіть спочатку!");
+    window.location.href = "index.html";
+  } else {
+    const displayName = userNames[currentUserKey] || currentUserKey;
+    document.body.insertAdjacentHTML("afterbegin", "<p>Ви увійшли як: " + displayName + "</p>");
+  }
+
+  function initPartners(userKey) {
+    const partners = JSON.parse(localStorage.getItem("partners")) || [];
+    const ids = userMap[userKey] || [];
+    const filtered = partners.filter(p => ids.includes(Number(p.id)));
+
+    const partnerSelect = document.getElementById("partnerSelect");
+    partnerSelect.innerHTML = "";
+    filtered.forEach(p => {
+      partnerSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    });
+
+    console.log("▶ initPartners: знайдено партнерів", filtered.length);
+  }
+
+  let calendar;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initPartners(currentUserKey);
+
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      locale: 'uk',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      events: [],
+      eventClick: function(info) {
+        const partnerId = info.event.extendedProps.partnerId;
+        window.location.href = "visits.html?partnerId=" + partnerId;
+      },
+      eventDidMount: function(info) {
+        // кольори статусів
+        const status = info.event.title.split(":")[0];
+        if (status.includes("Заплановано")) {
+          info.el.style.backgroundColor = "#FFD700"; // жовтий
+        } else if (status.includes("Перенесено")) {
+          info.el.style.backgroundColor = "#1E90FF"; // синій
+        } else if (status.includes("Відмінено")) {
+          info.el.style.backgroundColor = "#DC143C"; // червоний
+        } else if (status.includes("Проведено")) {
+          info.el.style.backgroundColor = "#32CD32"; // зелений
+        }
+      }
+    });
+    calendar.render();
+
+    loadVisits();
+  });
+
+  async function addVisit() {
+    const partnerId = document.getElementById("partnerSelect").value;
+    const partnerName = document.getElementById("partnerSelect").options[document.getElementById("partnerSelect").selectedIndex].text;
+    const date = document.getElementById("visitDate").value;
+    const time = document.getElementById("visitTime").value;
+    const comment = document.getElementById("visitComment").value;
+
+    if (!date || !time) {
+      alert("Будь ласка, виберіть дату і час");
+      return;
+    }
+
+    const startDateTime = date + "T" + time;
+
+    calendar.addEvent({
+      title: "Заплановано: " + partnerName,
+      start: startDateTime,
+      extendedProps: { partnerId: partnerId, comment: comment }
+    });
+
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycby8WVGlThUDtM5FV1hP9Lb9xudnrUjQCVWXdbQepkWqWhqIsgG6VZU6dgyowaA-W4ZVsw/exec", {
+        method: "POST",
+        body: JSON.stringify({
+          userName: userNames[currentUserKey],
+          partnerId: partnerId,
+          partnerName: partnerName,
+          date: date,
+          time: time,
+          status: "Заплановано",
+          comment: comment,
+          data: []
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+      alert("Візит додано і збережено у Google Sheet!");
+    } catch (err) {
+      console.error("Помилка відправки:", err);
+      alert("Не вдалося зберегти у Google Sheet");
+    }
+  }
+
+  async function loadVisits() {
+    try {
+      const res = await fetch("https://script.google.com/macros/s/AKfycby8WVGlThUDtM5FV1hP9Lb9xudnrUjQCVWXdbQepkWqWhqIsgG6VZU6dgyowaA-W4ZVsw/exec");
+      const visits = await res.json();
+
+      visits.forEach(v => {
+        calendar.addEvent({
+          title: `${v.status}: ${v.partnerName}`,
+          start: v.date + "T" + v.time,
+          extendedProps: { partnerId: v.partnerId, comment: v.comment }
+        });
+      });
+    } catch (err) {
+      console.error("Помилка завантаження:", err);
+    }
+  }
+</script>
+</body>
+</html>

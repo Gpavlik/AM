@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/jpg" href="bol.jpg">
+  <title>Вхід</title>
+  <style>
+     body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #009400, #004d00);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #7a7a7a; padding: 6px; text-align: center; }
+    th { background: #adadad; }
+    td.name { text-align: left; }
+    .vital { background-color: #26a12b; }
+    .valuable { background-color: #286ca3; }
+    .acceptable { background-color: #e0d037; }
+    .interfering { background-color: #c78a90; }
+    label {
+      display: block; margin: 10px auto 5px auto; font-weight: bold;
+      width: 500px; text-align: left;
+    }
+    input {
+      width: 500px; padding: 10px; margin: 5px auto 15px auto;
+      border: none; border-radius: 6px; font-size: 1rem;
+box-sizing: border-box;
+    }
+    select {
+      width: 500px; padding: 10px; margin: 5px auto 15px auto;
+      border: none; border-radius: 6px; font-size: 1rem;
+      box-sizing: border-box;
+    }
+    button {
+      width: 200px; padding: 12px; margin-top: 10px;
+      background-color: #004d00; color: #ffffff;
+      border: solid 1px #c2ffc2; border-radius: 6px; font-size: 1rem;
+      cursor: pointer; transition: background 0.3s ease;
+    }
+     h3 { margin-top: 30px; text-align: center; }
+    button:hover { background-color: #003300; }
+/* стилі для таблиці */
+td.to-sell {
+  text-align: center;
+  font-weight: bold;
+  color: white;
+}
+</style>
+</head>
+<body>
+    <h1>Вхід</h1>
+<br>
+  <img src="./logo.svg" alt="logo" width="560">
+<div id="loginForm">
+ 
+  <label>Ім’я користувача:
+    <select id="username">
+    <option value="">Виберіть користувача</option>
+      <option value="fedir">Олександр Красніков</option>
+      <option value="olena">Тетяна Романовська</option>
+      <option value="office">Офіс </option>
+      <option value="andriy">Тетяна Кліменко</option>
+      <option value="maria">Тетяна Демус</option>
+      <option value="serhiy">Ілона Бабенко</option>
+    </select>
+  </label>
+  <label>Пароль:
+    <input type="password" id="password">
+  </label>
+  <button id="loginBtn">Увійти</button>
+</div>
+
+<div id="menu" style="display:none;">
+  <h2>Меню</h2>
+  <button onclick="goTo('visits.html')">Візити</button>
+  <button onclick="goTo('index.html')">Калькулятори</button>
+  <button onclick="goTo('reports.html')">Звіти</button>
+  <button onclick="goTo('calendar.html')">Календар</button>
+</div>
+ <img src="./ph.png" alt="logo" width="560">
+<script>
+  // Список користувачів і паролів
+  const users = {
+    "fedir": "pass123",
+    "olena": "qwerty",
+    "office": "office2026",
+    "andriy": "andriy321",
+    "maria": "maria456",
+    "serhiy": "serhiy789"
+  };
+
+  let currentUser = null;
+
+  document.getElementById("loginBtn").addEventListener("click", function() {
+  const u = document.getElementById("username").value;
+  const p = document.getElementById("password").value;
+  
+  if (users[u] && users[u] === p) {
+    currentUser = u;
+    // зберігаємо користувача у localStorage
+    localStorage.setItem("currentUser", u);
+    alert("Вхід успішний!");
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("menu").style.display = "block";
+  } else {
+    alert("Невірний пароль!");
+  }
+});
+
+function goTo(page) {
+  window.location.href = page;
+}
+</script>
+</body>
+</html>
