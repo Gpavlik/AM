@@ -88,6 +88,7 @@
   <div id="calendar"></div>
  <img src="./ph.png" alt="logo" width="360">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  
   <script>
   const userNames = {
     fedir: "Олександр Красніков",
@@ -150,7 +151,6 @@
         window.location.href = "visits.html?partnerId=" + partnerId;
       },
       eventDidMount: function(info) {
-        // кольори статусів
         const status = info.event.title.split(":")[0];
         if (status.includes("Заплановано")) {
           info.el.style.backgroundColor = "#FFD700"; // жовтий
@@ -189,7 +189,7 @@
     });
 
     try {
-      await fetch("https://script.google.com/macros/s/AKfycby8WVGlThUDtM5FV1hP9Lb9xudnrUjQCVWXdbQepkWqWhqIsgG6VZU6dgyowaA-W4ZVsw/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbzPPp8xdd9s0tLqnHbI1EQaXzuHr-_7PXIZcBOn7-jy-OUtTLhxEt5whCXt_mVvlgpdrA/exec", {
         method: "POST",
         body: JSON.stringify({
           userName: userNames[currentUserKey],
@@ -211,21 +211,23 @@
   }
 
   async function loadVisits() {
-    try {
-      const res = await fetch("https://script.google.com/macros/s/AKfycby8WVGlThUDtM5FV1hP9Lb9xudnrUjQCVWXdbQepkWqWhqIsgG6VZU6dgyowaA-W4ZVsw/exec");
-      const visits = await res.json();
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzPPp8xdd9s0tLqnHbI1EQaXzuHr-_7PXIZcBOn7-jy-OUtTLhxEt5whCXt_mVvlgpdrA/exec");
+    const text = await res.text();   // 👈 отримуємо як текст
+    const visits = JSON.parse(text); // 👈 перетворюємо у масив об’єктів
 
-      visits.forEach(v => {
-        calendar.addEvent({
-          title: `${v.status}: ${v.partnerName}`,
-          start: v.date + "T" + v.time,
-          extendedProps: { partnerId: v.partnerId, comment: v.comment }
-        });
+    visits.forEach(v => {
+      calendar.addEvent({
+        title: `${v.status}: ${v.partnerName}`,
+        start: v.date + "T" + v.time,
+        extendedProps: { partnerId: v.partnerId, comment: v.comment }
       });
-    } catch (err) {
-      console.error("Помилка завантаження:", err);
-    }
+    });
+  } catch (err) {
+    console.error("Помилка завантаження:", err);
+    alert("Не вдалося підтягнути дані з Google Sheet");
   }
-</script>
-</body>
+}
+  </script>
+</body> 
 </html>
