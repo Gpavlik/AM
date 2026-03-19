@@ -148,6 +148,21 @@ td.to-sell {
 
   <img src="./ph.png" alt="logo" width="360">
 <script>
+// зчитуємо userName з URL або localStorage
+function getQueryParam(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+
+const currentUserName = getQueryParam("userName") || localStorage.getItem("currentUserName");
+
+// показуємо у <p id="userInfo">
+if (currentUserName) {
+  document.getElementById("userInfo").innerText = "Користувач: " + currentUserName;
+  // зберігаємо у localStorage для подальшого використання
+  localStorage.setItem("currentUserName", currentUserName);
+}
+
 // Користувачі та карта партнерів для аптечних візитів
 const userNames = {
   fedir: "Олександр Красніков",
@@ -279,12 +294,19 @@ function savePharmacyVisit() {
     productsData.push({ name, available, quantity, display, competitors, aware });
   });
 
+  // зчитуємо userName з URL або localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const userName = urlParams.get("userName") || localStorage.getItem("currentUserName");
+
   const data = {
     action: "savePharmacyVisit",
+    userName: userName, // ← додаємо користувача
     date: document.getElementById("visitDate").value,
     time: document.getElementById("visitTime").value,
     partnerId: document.getElementById("partnerSelect").value,
-    partnerName: document.getElementById("partnerSelect").options[document.getElementById("partnerSelect").selectedIndex].text,
+    partnerName: document.getElementById("partnerSelect").options[
+      document.getElementById("partnerSelect").selectedIndex
+    ].text,
     address: document.getElementById("pharmacyAddress").value,
     products: productsData
   };
