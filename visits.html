@@ -182,12 +182,12 @@ const userNames = {
   serhiy: "Ілона Бабенко"
 };
 const userMap = {
-  fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
+    fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
   olena: [11,53,45,146,181,27,601,108,10],
   office: [1,2,3,4,5],
-  andriy: [13,12,45,98,26],
-  maria: [112,34,56,78,90],
-  serhiy: [63,54,87,32,19]
+  andriy: [18,19],
+  maria: [49,46,36,7,28,30,37,14,56,38,60],
+  serhiy: [12,75,13,8,21,67,48]
 };
 const currentUser = localStorage.getItem("currentUser");
 let selectedPartnerName = "";
@@ -434,7 +434,7 @@ async function sendReportToSheet() {
   const comment = document.getElementById("visitComment").value;
 
   try {
-    await fetch("https://script.google.com/macros/s/AKfycbzPPp8xdd9s0tLqnHbI1EQaXzuHr-_7PXIZcBOn7-jy-OUtTLhxEt5whCXt_mVvlgpdrA/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbx-jWYompo6mKJxRwVRyNcWpBFv-JuodX2K0yQaNsMgKqoc1lYgSt9y5c1m3xgwZn4b/exec", {
       method: "POST",
       mode: "no-cors", // обхід CORS
       body: JSON.stringify({

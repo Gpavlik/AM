@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Календар планувальник</title>
- <link rel="icon" type="image/jpg" href="bol.jpg">
+  <link rel="icon" type="image/jpg" href="bol.jpg">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <style>
     body {
@@ -60,6 +60,44 @@
       background-color: #f5fdf6;
       color: #fff;
     }
+    /* фон модалки */
+.modal {
+  display: none; /* приховано за замовчуванням */
+  position: fixed; /* поверх усіх елементів */
+  z-index: 1000; /* високий пріоритет */
+  left: 0;
+  top: 0;
+  width: 100%; /* на всю ширину */
+  height: 100%; /* на всю висоту */
+  overflow: auto; /* прокрутка якщо контент великий */
+  background-color: rgba(0,0,0,0.5); /* напівпрозорий чорний фон */
+}
+
+/* контейнер контенту */
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto; /* відступ зверху і по центру */
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px; /* ширина модалки */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+/* кнопки */
+.modal-content button {
+  margin: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#startBtn { background-color: #32CD32; color: #fff; }
+#rescheduleBtn { background-color: #1E90FF; color: #fff; }
+#confirmReschedule { background-color: #FFD700; color: #000; }
+#cancelBtn { background-color: #DC143C; color: #fff; }
+
   </style>
 </head>
 <body>
@@ -86,9 +124,22 @@
 
   <!-- Календар -->
   <div id="calendar"></div>
- <img src="./ph.png" alt="logo" width="360">
+  <img src="./ph.png" alt="logo" width="360">
+<!-- Модальне вікно -->
+<div id="visitModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3 id="modalTitle"></h3>
+    <button id="startBtn">Почати</button>
+    <button id="rescheduleBtn">Перенести</button>
+    <input type="date" id="newDate" style="display:none;">
+    <input type="time" id="newTime" style="display:none;">
+    <button id="confirmReschedule">Підтвердити перенесення</button>
+    <button id="cancelBtn">Відмінити</button>
+  </div>
+</div>
+
+
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  
   <script>
   const userNames = {
     fedir: "Олександр Красніков",
@@ -100,12 +151,12 @@
   };
 
   const userMap = {
-    fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
-    olena: [11,53,45,146,181,27,601,108,10],
-    office: [1,2,3,4,5],
-    andriy: [13,12,45,98,26],
-    maria: [112,34,56,78,90],
-    serhiy: [63,54,87,32,19]
+     fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
+  olena: [11,53,45,146,181,27,601,108,10],
+  office: [1,2,3,4,5],
+  andriy: [18,19],
+  maria: [49,46,36,7,28,30,37,14,56,38,60],
+  serhiy: [12,75,13,8,21,67,48]
   };
 
   const currentUserKey = localStorage.getItem("currentUser");
@@ -127,8 +178,7 @@
     filtered.forEach(p => {
       partnerSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
     });
-
-    console.log("▶ initPartners: знайдено партнерів", filtered.length);
+    partnerSelect.innerHTML += `<option value="pharmacy">Аптека</option>`;
   }
 
   let calendar;
@@ -146,28 +196,90 @@
         right: 'dayGridMonth,timeGridWeek,timeGridDay'
       },
       events: [],
-      eventClick: function(info) {
-        const partnerId = info.event.extendedProps.partnerId;
-        window.location.href = "visits.html?partnerId=" + partnerId;
-      },
-      eventDidMount: function(info) {
-        const status = info.event.title.split(":")[0];
-        if (status.includes("Заплановано")) {
-          info.el.style.backgroundColor = "#FFD700"; // жовтий
-        } else if (status.includes("Перенесено")) {
-          info.el.style.backgroundColor = "#1E90FF"; // синій
-        } else if (status.includes("Відмінено")) {
-          info.el.style.backgroundColor = "#DC143C"; // червоний
-        } else if (status.includes("Проведено")) {
-          info.el.style.backgroundColor = "#32CD32"; // зелений
-        }
-      }
+      eventClick: handleEventClick,
+      eventDidMount: styleEvent
     });
     calendar.render();
 
     loadVisits();
   });
 
+  // стилізація подій за статусом
+  function styleEvent(info) {
+    const status = info.event.extendedProps.status || info.event.title.split(":")[0];
+    if (status.includes("Заплановано")) info.el.style.backgroundColor = "#FFD700";
+    else if (status.includes("Перенесено")) info.el.style.backgroundColor = "#1E90FF";
+    else if (status.includes("Відмінений")) info.el.style.backgroundColor = "#DC143C";
+    else if (status.includes("Проведений")) info.el.style.backgroundColor = "#32CD32";
+  }
+
+  // обробка кліку на подію
+  function handleEventClick(info) {
+    const event = info.event;
+    document.getElementById('modalTitle').innerText = event.title;
+    document.getElementById('visitModal').style.display = 'block';
+
+    // "Почати"
+    document.getElementById('startBtn').onclick = () => {
+      event.setProp('title', 'Проведений: ' + event.extendedProps.partnerName);
+      event.setExtendedProp('status', 'Проведений');
+      updateStatusInBackend(event, 'Проведений');
+      window.location.href = `visits.html?partnerId=${event.extendedProps.partnerId}`;
+    };
+
+    // "Перенести"
+    document.getElementById('rescheduleBtn').onclick = () => {
+      document.getElementById('newDate').style.display = 'inline';
+      document.getElementById('newTime').style.display = 'inline';
+    };
+    document.getElementById('confirmReschedule').onclick = () => {
+      const newDate = document.getElementById('newDate').value;
+      const newTime = document.getElementById('newTime').value;
+      if (!newDate || !newTime) return;
+      const newStart = `${newDate}T${newTime}`;
+      event.setStart(newStart);
+      updateDateInBackend(event, newDate, newTime);
+      document.getElementById('visitModal').style.display = 'none';
+    };
+
+    // "Відмінити"
+    document.getElementById('cancelBtn').onclick = () => {
+      event.setProp('title', 'Відмінений: ' + event.extendedProps.partnerName);
+      event.setExtendedProp('status', 'Відмінений');
+      updateStatusInBackend(event, 'Відмінений');
+      document.getElementById('visitModal').style.display = 'none';
+    };
+  }
+
+  // оновлення статусу у бекенді
+  async function updateStatusInBackend(event, newStatus) {
+    await fetch("https://script.google.com/macros/s/AKfycbx-jWYompo6mKJxRwVRyNcWpBFv-JuodX2K0yQaNsMgKqoc1lYgSt9y5c1m3xgwZn4b/exec", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "updateStatus",
+        partnerId: event.extendedProps.partnerId,
+        date: event.startStr,
+        status: newStatus
+      })
+    });
+  }
+
+  // оновлення дати у бекенді
+  async function updateDateInBackend(event, newDate, newTime) {
+    await fetch("https://script.google.com/macros/s/AKfycbx-jWYompo6mKJxRwVRyNcWpBFv-JuodX2K0yQaNsMgKqoc1lYgSt9y5c1m3xgwZn4b/exec", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "reschedule",
+        partnerId: event.extendedProps.partnerId,
+        oldDate: event.extendedProps.date,
+        newDate: newDate,
+        newTime: newTime,
+        status: event.extendedProps.status
+      })
+    });
+  }
+
+  // додавання нового візиту
   async function addVisit() {
     const partnerId = document.getElementById("partnerSelect").value;
     const partnerName = document.getElementById("partnerSelect").options[document.getElementById("partnerSelect").selectedIndex].text;
@@ -185,11 +297,17 @@
     calendar.addEvent({
       title: "Заплановано: " + partnerName,
       start: startDateTime,
-      extendedProps: { partnerId: partnerId, comment: comment }
+      extendedProps: { 
+        partnerId: partnerId, 
+        partnerName: partnerName, 
+        comment: comment,
+        status: "Заплановано",
+        date: date
+      }
     });
 
     try {
-      await fetch("https://script.google.com/macros/s/AKfycbzPPp8xdd9s0tLqnHbI1EQaXzuHr-_7PXIZcBOn7-jy-OUtTLhxEt5whCXt_mVvlgpdrA/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbx-jWYompo6mKJxRwVRyNcWpBFv-JuodX2K0yQaNsMgKqoc1lYgSt9y5c1m3xgwZn4b/exec", {
         method: "POST",
         body: JSON.stringify({
           userName: userNames[currentUserKey],
@@ -209,25 +327,83 @@
       alert("Не вдалося зберегти у Google Sheet");
     }
   }
+function getPartnerIdByName(partnerName) {
+  const partners = JSON.parse(localStorage.getItem("partners")) || [];
+  const found = partners.find(p => p.name === partnerName);
+  return found ? found.id : null;
+}
 
-  async function loadVisits() {
+  // завантаження подій
+ async function loadVisits() {
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbzPPp8xdd9s0tLqnHbI1EQaXzuHr-_7PXIZcBOn7-jy-OUtTLhxEt5whCXt_mVvlgpdrA/exec");
-    const text = await res.text();   // 👈 отримуємо як текст
-    const visits = JSON.parse(text); // 👈 перетворюємо у масив об’єктів
+    const res = await fetch("https://script.google.com/macros/s/AKfycbx-jWYompo6mKJxRwVRyNcWpBFv-JuodX2K0yQaNsMgKqoc1lYgSt9y5c1m3xgwZn4b/exec");
+    const text = await res.text();
+    console.log("▶ Сирий текст від бекенду:", text);
+
+    const visits = JSON.parse(text);
+    console.log("▶ Масив visits після JSON.parse:", visits);
 
     visits.forEach(v => {
-      calendar.addEvent({
-        title: `${v.status}: ${v.partnerName}`,
-        start: v.date + "T" + v.time,
-        extendedProps: { partnerId: v.partnerId, comment: v.comment }
-      });
-    });
+  const startDateTime = normalizeDate(v.date, v.time);
+  const pid = getPartnerIdByName(v.partnerName);
+
+  console.log("▶ Знайшов partnerId:", pid, "для", v.partnerName);
+
+  calendar.addEvent({
+    title: `${v.status}: ${v.partnerName}`,
+    start: startDateTime,
+    extendedProps: {
+      partnerId: pid,
+      partnerName: v.partnerName,
+      comment: v.comment,
+      status: v.status,
+      date: v.date
+    }
+  });
+});
+
+
   } catch (err) {
     console.error("Помилка завантаження:", err);
-    alert("Не вдалося підтягнути дані з Google Sheet");
   }
 }
-  </script>
-</body> 
-</html>
+
+
+    // конвертація дат у ISO формат
+  function normalizeDate(dateStr, timeStr) {
+    dateStr = String(dateStr).trim();
+    timeStr = String(timeStr || "").trim();
+
+    // Якщо дата вже у форматі YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T00:00`;
+    }
+
+    // Якщо дата у форматі DD.MM.YYYY
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+      const [day, month, year] = dateStr.split(".");
+      return timeStr ? `${year}-${month}-${day}T${timeStr}` : `${year}-${month}-${day}T00:00`;
+    }
+
+    // fallback — якщо формат невідомий
+    return timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T00:00`;
+  }
+// При натисканні "Почати"
+function startVisit() {
+  const partnerId = document.getElementById("partnerSelect").value;
+  const partnerName = document.getElementById("partnerSelect").options[
+    document.getElementById("partnerSelect").selectedIndex
+  ].text;
+
+  if (partnerId === "pharmacy") {
+    // якщо вибрано "Аптека" → редирект на visitpharm.html
+    window.location.href = "visitpharm.html";
+  } else {
+    // стандартна логіка для інших партнерів
+    openVisitModal(partnerId, partnerName);
+  }
+}
+
+</script>
+</body>
+</html>  

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Візит в аптеку</title>
+  <link rel="icon" type="image/jpg" href="bol.jpg">
+  <style>
+ body {
+  font-family: Arial, sans-serif;
+  margin: 0; padding: 0;
+  background: linear-gradient(135deg, #009400, #004d00);
+  color: #ffffff;
+  min-height: 100vh;
+  max-width: 1200px; /* краще max-width, щоб не обрізати */
+  margin: 0 auto;    /* центрування */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 20px;
+  table-layout: fixed; /* однакова ширина колонок */
+}
+
+th, td {
+  border: 1px solid #ffffff;
+  padding: 8px;
+  text-align: center;
+  word-wrap: break-word;
+}
+
+th {
+  background: #adadad;
+  color: #000; /* контрастний текст */
+}
+
+td.name {
+  text-align: left;
+}
+
+tbody tr:hover {
+  background-color: #26a12b;
+}
+/*input, select {
+  width: 500px;
+  padding: 10px;
+  margin: 5px auto 15px auto;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+}*/
+
+input, select {
+  border: 1px solid #ffffff;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 13px;
+  width: 100%; 
+  margin: 0px;
+  box-sizing: border-box;
+  background-color: #bcf8be;
+  color: #000;
+}
+.vital { background-color: #26a12b; }
+.valuable { background-color: #286ca3; }
+.acceptable { background-color: #e0d037; }
+.interfering { background-color: #c78a90; }
+
+label {
+  display: block;
+  margin: 10px auto 5px auto;
+  font-weight: bold;
+  width: 500px;
+  text-align: center;
+}
+
+
+button {
+  width: 220px;
+  padding: 12px;
+  margin-top: 10px;
+  background-color: #004d00;
+  color: #ffffff;
+  border: solid 1px #c2ffc2;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #003300;
+}
+
+h3 {
+  margin-top: 30px;
+  text-align: center;
+  color: #fff;
+}
+
+td.to-sell {
+  text-align: center;
+  font-weight: bold;
+  color: white;
+}
+</style>
+<body>
+  <h1>Візит в аптеку</h1>
+  <img src="./logo.svg" alt="logo" width="360">
+  <p id="userInfo"></p>
+<form id="pharmacyVisitForm">
+  <!-- Ідентифікація візиту -->
+  <label>Дата:</label>
+  <input type="date" id="visitDate" readonly>
+  <label>Час:</label>
+  <input type="time" id="visitTime" readonly>
+  <label>Партнер:</label>
+  <select id="partnerSelect"></select>
+  <label>Адреса:</label>
+  <input type="text" id="pharmacyAddress"><br><br>
+
+  <!-- Таблиця продуктів -->
+  <table border="1" id="productsTable">
+    <thead>
+      <tr>
+        <th>Продукт</th>
+        <th>Наявність</th>
+        <th>Кількість</th>
+        <th>Викладка</th>
+        <th>Конкуренти</th>
+        <th>Обізнаність</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- рядки генерує JS -->
+    </tbody>
+  </table>
+
+  <br>
+  <div style="text-align: center;" >  
+  <button type="button" onclick="savePharmacyVisit()">Зберегти візит</button>
+  <a href="calendar.html"><button>Перейти в календар</button></a>
+</div>    
+</form>
+
+  <img src="./ph.png" alt="logo" width="360">
+<script>
+// Користувачі та карта партнерів для аптечних візитів
+const userNames = {
+  fedir: "Олександр Красніков",
+  olena: "Тетяна Романовська",
+  office: "Офіс",
+  andriy: "Тетяна Кліменко",
+  maria: "Тетяна Демус",
+  serhiy: "Ілона Бабенко"
+};
+
+const userMap = {
+    fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55,1,2,3,4,5],
+  olena: [11,53,45,146,181,27,601,108,10,1,2,3,4,5],
+  office: [1,2,3,4,5],
+  andriy: [18,19,1,2,3,4,5],
+  maria: [49,46,36,7,28,30,37,14,56,38,60,1,2,3,4,5],
+  serhiy: [12,75,13,8,21,67,48,1,2,3,4,5]
+};
+
+// Список продуктів для таблиці
+const productList = [
+  "CLK№50","CLK№5","CLK№25","CL2GK№50","HPAg","Ultra","Solomini№5","Secret№2",
+  "Secret","Duet","Syphilis","Rota","CLpH№25","CLpH№1","ActimPROM","HIV","HCV",
+  "HBsAg","StrA","Influenza","CovidAg","CovidAg+Influenza","TnI","CardioCombo",
+  "multy5","multy10"
+];
+
+// Допоміжні парсери
+function parsePercent(val) {
+  if (!val) return 0;
+  return parseFloat(String(val).replace("%","").replace(",",".")) || 0;
+}
+
+function parseIntClean(val) {
+  if (!val) return 0;
+  return parseInt(String(val).replace(/\s|,| /g,""),10) || 0;
+}
+
+// Отримання партнерів з Morion
+async function fetchPartners(morionUrl) {
+  const url = `${morionUrl}/gviz/tq?tqx=out:json&sheet=sheet1`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.substr(47).slice(0, -2));
+
+  return json.table.rows.map(r => {
+    const corpRaw = r.c[0]?.v || "";
+    const idMatch = corpRaw.match(/^(\d+)/);
+    const id = idMatch ? parseInt(idMatch[1], 10) : 0;
+    const name = corpRaw.replace(/^(\d+)\.\s*/, "");
+
+    return {
+      id,
+      name,
+      turnover: parseFloat(String(r.c[1]?.v || 0).replace(/\s|,/g, "")) || 0,
+      msTable: parsePercent(r.c[2]?.v),
+      grossRate: parsePercent(r.c[3]?.v),
+      ei: parseFloat(String(r.c[4]?.v || 0).replace(/\s|,/g, "")) || 0,
+      tt: parseIntClean(r.c[5]?.v || 0)
+    };
+  }).filter(p => p.id && p.name && !p.name.includes("Rating"));
+}
+
+// Ініціалізація партнерів для селекту
+async function initPartners(user) {
+  const morionUrl = "https://docs.google.com/spreadsheets/d/1CUEcXgBAUIKvg0k2JePbhSH-_S01HcEi";
+  const partners = await fetchPartners(morionUrl);
+
+  console.log("▶ Отримано партнерів:", partners);
+
+  localStorage.setItem("partners", JSON.stringify(partners));
+
+  const ids = userMap[user] || [];
+  const filtered = partners.filter(p => ids.includes(p.id));
+
+  const partnerSelect = document.getElementById("partnerSelect");
+  partnerSelect.innerHTML = `<option value="all">Всі партнери</option>`;
+  filtered.forEach(p => {
+    partnerSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+  });
+
+  console.log("▶ initPartners: збережено партнерів", filtered.length);
+}
+
+// Основна ініціалізація сторінки
+document.addEventListener("DOMContentLoaded", async () => {
+  const now = new Date();
+  document.getElementById("visitDate").value = now.toISOString().split("T")[0];
+  document.getElementById("visitTime").value = now.toTimeString().slice(0,5);
+
+  const currentUser = localStorage.getItem("currentUser");
+  if (!currentUser) {
+    alert("Будь ласка, увійдіть спочатку!");
+    window.location.href = "index.html";
+    return;
+  }
+
+  await initPartners(currentUser);
+
+  // Генеруємо таблицю продуктів
+  const tbody = document.querySelector("#productsTable tbody");
+  productList.forEach(name => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${name}</td>
+      <td><input type="checkbox" class="available"></td>
+      <td><input type="number" class="quantity" min="0"></td>
+      <td><input type="checkbox" class="display"></td>
+      <td><input type="text" class="competitors"></td>
+      <td><input type="checkbox" class="aware"></td>
+    `;
+    tbody.appendChild(row);
+  });
+});
+
+// Збереження даних візиту
+function savePharmacyVisit() {
+  const rows = document.querySelectorAll("#productsTable tbody tr");
+  const productsData = [];
+
+  rows.forEach(row => {
+    const name = row.cells[0].innerText;
+    const available = row.querySelector(".available").checked;
+    const quantity = row.querySelector(".quantity").value;
+    const display = row.querySelector(".display").checked;
+    const competitors = row.querySelector(".competitors").value;
+    const aware = row.querySelector(".aware").checked;
+
+    productsData.push({ name, available, quantity, display, competitors, aware });
+  });
+
+  const data = {
+    action: "savePharmacyVisit",
+    date: document.getElementById("visitDate").value,
+    time: document.getElementById("visitTime").value,
+    partnerId: document.getElementById("partnerSelect").value,
+    partnerName: document.getElementById("partnerSelect").options[document.getElementById("partnerSelect").selectedIndex].text,
+    address: document.getElementById("pharmacyAddress").value,
+    products: productsData
+  };
+
+  console.log("▶ Відправка візиту:", data);
+
+  fetch("https://script.google.com/macros/s/AKfycbx-jWYompo6mKJxRwVRyNcWpBFv-JuodX2K0yQaNsMgKqoc1lYgSt9y5c1m3xgwZn4b/exec", {
+    method: "POST",
+    mode: "no-cors", // обхід CORS
+    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(res => res.text())
+  .then(txt => {
+    console.log("▶ Відповідь від скрипта:", txt);
+    alert("Візит збережено у phvisits!");
+  })
+  .catch(err => {
+    console.error("Помилка збереження:", err);
+    alert("Не вдалося зберегти візит");
+  });
+}
+
+</script>
+</body> 
+</html>
