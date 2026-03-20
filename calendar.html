@@ -97,7 +97,13 @@
 #rescheduleBtn { background-color: #1E90FF; color: #fff; }
 #confirmReschedule { background-color: #FFD700; color: #000; }
 #cancelBtn { background-color: #DC143C; color: #fff; }
-
+.button {
+      width: 200px; padding: 12px; margin-top: 10px;
+      background-color: #004d00; color: #ffffff;
+      border: solid 1px #c2ffc2; border-radius: 6px; font-size: 1rem;
+      cursor: pointer; transition: background 0.3s ease;
+    }
+     h3 { margin-top: 30px; text-align: center; }
   </style>
 </head>
 <body>
@@ -124,6 +130,7 @@
 
   <!-- Календар -->
   <div id="calendar"></div>
+  <a href="menu.html"><button class="button">Перейти в меню</button></a>
   <img src="./ph.png" alt="logo" width="360">
 <!-- Модальне вікно -->
 <div id="visitModal" class="modal" style="display:none;">
