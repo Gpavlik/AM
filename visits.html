@@ -113,6 +113,10 @@ td.to-sell {
 
   <label for="partnerSelect">Оберіть партнера:</label>
   <select id="partnerSelect"></select>
+  <label>Контактна особа (ПІБ):</label>
+    <input type="text" id="contactName">
+  <label>Телефон:</label>
+    <input type="text" id="contactPhone">
   <div id="visitMeta">
   <h3>Історія візитів</h3>
   <table>
@@ -404,64 +408,51 @@ function renderCurrentVisit() {
 }
 
 
-// ===== Збереження у LocalStorage =====
-function saveCurrentVisit() {
-  const rows = document.querySelectorAll("#currentVisitBody tr");
-  const data = [];
-  rows.forEach(r => {
-  const cells = r.querySelectorAll("td");
-  const expiryInput = cells[5].querySelector("input");
-  data.push({
-    name: cells[0].textContent,
-    percent: cells[1].textContent,
-    qty: cells[2].textContent,
-    penetration: cells[3].textContent,
-    stock: cells[4].textContent,
-    expiry: expiryInput ? expiryInput.value : cells[5].textContent
-  });
-});
-  localStorage.setItem("currentVisitData", JSON.stringify(data));
-}
-
-// ===== Відправка у Google Sheet =====
-async function sendReportToSheet() {
-  const data = JSON.parse(localStorage.getItem("currentVisitData") || "[]");
-  if (!data.length) {
-    alert("Немає даних для відправки");
-    return;
-  }
-
+// ===== Збереження даних візиту до партнера =====
+function savePartnerVisit() {
+  const contactName = document.getElementById("contactName").value;
+  const contactPhone = document.getElementById("contactPhone").value;
   const status = document.getElementById("visitStatus").value;
   const comment = document.getElementById("visitComment").value;
 
-  try {
-    await fetch("https://script.google.com/macros/s/AKfycby6cuDzd6gugvJly8G26sfTM_7upTuMMNbrjS5NdWR0g-lTqTy1_QQCjKYynML4KJJTyA/exec", {
-      method: "POST",
-      mode: "no-cors", // обхід CORS
-      body: JSON.stringify({
-        userName: userNames[currentUser],
-        partnerName: selectedPartnerName,
-        date: new Date().toLocaleDateString("uk-UA"),
-        status: status,
-        comment: comment,
-        data: data
-      }),
-      headers: { "Content-Type": "application/json" }
-    });
+  const data = {
+    action: "savePartnerVisit",
+    userName: localStorage.getItem("currentUserName"),
+    partnerName: selectedPartnerName, // вибраний партнер
+    date: new Date().toLocaleDateString("uk-UA"),
+    time: new Date().toLocaleTimeString("uk-UA", {hour: "2-digit", minute: "2-digit"}),
+    contactName: contactName,
+    contactPhone: contactPhone,
+    status: status,
+    comment: comment
+  };
 
-    alert("Звіт збережено та відправлено на сервер!");
-    location.reload(); // оновлюємо сторінку після відправки
-  } catch (err) {
-    console.error("Помилка відправки:", err);
-    alert("Не вдалося відправити звіт");
-  }
+  console.log("▶ Відправка візиту до партнера:", data);
+
+  fetch("https://script.google.com/macros/s/AKfycbyiJCBy3wIvCZEaLqZLu5-_dWEKKLJpU-KM9Sj3xEOFbUDyYQ5narIU1dNdjT5MhDq66Q/exec", {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(res => res.text())
+  .then(txt => {
+    console.log("▶ Відповідь від скрипта:", txt);
+    alert("Візит до партнера збережено!");
+  })
+  .catch(err => {
+    console.error("Помилка збереження:", err);
+    alert("Не вдалося зберегти візит");
+  });
+
+  document.getElementById("partnerVisitForm").reset();
 }
 
 // ===== Обробник кнопки =====
-document.getElementById("sendReport").addEventListener("click", () => {
-  saveCurrentVisit();
-  sendReportToSheet();
+document.getElementById("sendPartnerVisit").addEventListener("click", () => {
+  savePartnerVisit();
 });
+
 </script>
 </body>
 <html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/jpg" href="bol.jpg">
+  <title>Звіт</title>
+  <style>
+     body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #009400, #004d00);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #7a7a7a; padding: 6px; text-align: center; }
+    th { background: #adadad; }
+    td.name { text-align: left; }
+    .vital { background-color: #26a12b; }
+    .valuable { background-color: #286ca3; }
+    .acceptable { background-color: #e0d037; }
+    .interfering { background-color: #c78a90; }
+    label {
+      display: block; margin: 10px auto 5px auto; font-weight: bold;
+      width: 500px; text-align: left;
+    }
+    input {
+      width: 500px; padding: 10px; margin: 5px auto 15px auto;
+      border: none; border-radius: 6px; font-size: 1rem;
+
+    }
+    select {
+      width: 500px; padding: 10px; margin: 5px auto 15px auto;
+      border: none; border-radius: 6px; font-size: 1rem;
+    }
+    button {
+      width: 200px; padding: 12px; margin-top: 10px;
+      background-color: #004d00; color: #ffffff;
+      border: solid 1px #c2ffc2; border-radius: 6px; font-size: 1rem;
+      cursor: pointer; transition: background 0.3s ease;
+    }
+     h3 { margin-top: 30px; text-align: center; }
+    button:hover { background-color: #003300; }
+/* стилі для таблиці */
+td.to-sell {
+  text-align: center;
+  font-weight: bold;
+  color: white;
+}
+</style>
+</head>
+<body>
+  <h1>Звіт по аптечних візитах</h1>
+  <p id="userInfo"></p>
+<img src="./logo.svg" alt="logo" width="360">
+    <!-- Панель кнопок -->
+  <div id="reportButtons">
+    <button onclick="showReportConfig('schedule')">Розклад</button>
+    <button onclick="showReportConfig('partnerVisits')">Візити до партнерів</button>
+    <button onclick="showReportConfig('pharmacyVisits')">Візити до аптек</button>
+  </div>
+
+  <!-- Зона параметрів -->
+  <div id="reportConfig"></div>
+
+  <!-- Кнопка запуску -->
+  <button id="runReport" style="display:none;">Подивитися звіт</button>
+
+  <!-- Результат -->
+  <div id="reportResult">
+    <table border="1" id="reportTable"><thead></thead><tbody></tbody></table>
+    <canvas id="reportChart"></canvas>
+  </div>
+<a href="menu.html"><button class="button">Перейти в меню</button></a>
+  <img src="./ph.png" alt="logo" width="360">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const currentUserName = localStorage.getItem("currentUserName");
+if (currentUserName) {
+  document.getElementById("userInfo").innerText = "Користувач: " + currentUserName;
+}
+
+// показати форму параметрів
+function showReportConfig(type) {
+  const configDiv = document.getElementById("reportConfig");
+  configDiv.innerHTML = "";
+  document.getElementById("runReport").style.display = "inline-block";
+  document.getElementById("runReport").onclick = () => runReport(type);
+
+  if (type === "schedule") {
+    configDiv.innerHTML = `
+      <label>Дата від:</label><input type="date" id="dateFrom">
+      <label>Дата до:</label><input type="date" id="dateTo">
+    `;
+  }
+  if (type === "partnerVisits") {
+    configDiv.innerHTML = `
+      <label>Партнер:</label><input type="text" id="partnerFilter">
+      <label>Дата:</label><input type="date" id="dateFilter">
+    `;
+  }
+  if (type === "pharmacyVisits") {
+    configDiv.innerHTML = `
+      <label>Місто:</label><input type="text" id="cityFilter">
+      <label>Дата:</label><input type="date" id="dateFilter">
+    `;
+  }
+}
+
+// отримати дані з Google Sheets
+async function fetchSheet(sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/ID_TVOEI_TABLICI/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.substr(47).slice(0, -2));
+  return json.table.rows.map(r => r.c.map(c => c?.v || ""));
+}
+
+// запуск звіту
+async function runReport(type) {
+  let data = [];
+  let headers = [];
+  if (type === "schedule") {
+    data = await fetchSheet("schedule");
+    headers = ["Дата","Час","Користувач","Подія"];
+  }
+  if (type === "partnerVisits") {
+    data = await fetchSheet("partnerVisits");
+    headers = ["Дата","Час","Партнер","Коментар"];
+  }
+  if (type === "pharmacyVisits") {
+    data = await fetchSheet("pharmacyVisits");
+    headers = ["Дата","Час","Партнер","Місто","Адреса","Продукт","Кількість"];
+  }
+
+  const thead = document.querySelector("#reportTable thead");
+  const tbody = document.querySelector("#reportTable tbody");
+  thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+  tbody.innerHTML = "";
+  data.forEach(row => {
+    tbody.innerHTML += "<tr>" + row.map(cell => `<td>${cell}</td>`).join("") + "</tr>";
+  });
+
+  // графік: кількість записів по датах
+  const ctx = document.getElementById("reportChart").getContext("2d");
+  const counts = {};
+  data.forEach(r => {
+    const d = r[0];
+    counts[d] = (counts[d]||0)+1;
+  });
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{
+        label: "Кількість записів",
+        data: Object.values(counts),
+        backgroundColor: "rgba(75,192,192,0.6)"
+      }]
+    }
+  });
+}
+</script>
+</body>
+</html>

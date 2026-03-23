@@ -270,7 +270,7 @@ function handleEventClick(info) {
 
   // оновлення статусу у бекенді
   async function updateStatusInBackend(event, newStatus) {
-    await fetch("https://script.google.com/macros/s/AKfycby6cuDzd6gugvJly8G26sfTM_7upTuMMNbrjS5NdWR0g-lTqTy1_QQCjKYynML4KJJTyA/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbyiJCBy3wIvCZEaLqZLu5-_dWEKKLJpU-KM9Sj3xEOFbUDyYQ5narIU1dNdjT5MhDq66Q/exec", {
       method: "POST",
        mode: "no-cors", // обхід CORS
       body: JSON.stringify({
@@ -284,7 +284,7 @@ function handleEventClick(info) {
 
   // оновлення дати у бекенді
   async function updateDateInBackend(event, newDate, newTime) {
-    await fetch("https://script.google.com/macros/s/AKfycby6cuDzd6gugvJly8G26sfTM_7upTuMMNbrjS5NdWR0g-lTqTy1_QQCjKYynML4KJJTyA/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbyiJCBy3wIvCZEaLqZLu5-_dWEKKLJpU-KM9Sj3xEOFbUDyYQ5narIU1dNdjT5MhDq66Q/exec", {
       method: "POST",
       mode: "no-cors", // обхід CORS
       body: JSON.stringify({
@@ -326,7 +326,7 @@ function handleEventClick(info) {
     });
 
     try {
-      await fetch("https://script.google.com/macros/s/AKfycby6cuDzd6gugvJly8G26sfTM_7upTuMMNbrjS5NdWR0g-lTqTy1_QQCjKYynML4KJJTyA/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbyiJCBy3wIvCZEaLqZLu5-_dWEKKLJpU-KM9Sj3xEOFbUDyYQ5narIU1dNdjT5MhDq66Q/exec", {
         method: "POST",
          mode: "no-cors", // обхід CORS
         body: JSON.stringify({
@@ -359,7 +359,7 @@ function getPartnerIdByName(partnerName) {
     const currentUserKey = localStorage.getItem("currentUser");
     const currentUserName = userNames[currentUserKey]; // повне ім’я
 
-    const res = await fetch("https://script.google.com/macros/s/AKfycby6cuDzd6gugvJly8G26sfTM_7upTuMMNbrjS5NdWR0g-lTqTy1_QQCjKYynML4KJJTyA/exec");
+    const res = await fetch("https://script.google.com/macros/s/AKfycbyiJCBy3wIvCZEaLqZLu5-_dWEKKLJpU-KM9Sj3xEOFbUDyYQ5narIU1dNdjT5MhDq66Q/exec");
     const text = await res.text();
     console.log("▶ Сирий текст від бекенду:", text);
 
