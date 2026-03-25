@@ -17,13 +17,18 @@
       align-items: center;
     }
     #calendar {
-      max-width: 900px;
+      max-width: 1200px;
+      width: 90%;
       margin: 0 auto;
       padding: 15px;
+      background: #2bac1f;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      height: 650px;
     }
     #addVisitForm {
       margin: 20px auto;
-      max-width: 600px;
+      max-width: 500px;
       padding: 15px;
       border: 1px solid #ffffff;
       border-radius: 8px;
@@ -37,7 +42,7 @@
       border: 1px solid #ffffff;
     }
     #addVisitForm button {
-      background: #4CAF50;
+      background: #127415;
       color: #fff;
       border: none;
       cursor: pointer;
@@ -82,6 +87,7 @@
   width: 400px; /* ширина модалки */
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
   text-align: center;
+  color: #000;
 }
 
 /* кнопки */
@@ -112,7 +118,7 @@
 
   <!-- Форма додавання візиту -->
   <div id="addVisitForm">
-    <h3>Додати запланований візит</h3>
+    <h3>Створити візит</h3>
     <label>Партнер:</label>
     <select id="partnerSelect"></select>
 
@@ -194,18 +200,25 @@
     initPartners(currentUserKey);
 
     const calendarEl = document.getElementById('calendar');
-    calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      locale: 'uk',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-      },
-      events: [],
-      eventClick: handleEventClick,
-      eventDidMount: styleEvent
-    });
+ calendar = new FullCalendar.Calendar(calendarEl, {
+  initialView: 'timeGridWeek',   // одразу відкривається тиждень
+  locale: 'uk',
+  headerToolbar: {
+    left: 'prev,next today',
+    center: 'title',
+    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+  },
+  slotMinTime: "08:00:00",       // початок робочого дня
+  slotMaxTime: "19:00:00",       // кінець робочого дня
+  allDaySlot: false,             // прибирає рядок "цілий день"
+  hiddenDays: [0, 6],            // ховає неділю (0) і суботу (6)
+  firstDay: 1,                   // тиждень починається з понеділка
+  events: [],
+  eventClick: handleEventClick,
+  eventDidMount: styleEvent
+});
+
+
     calendar.render();
 
     loadVisits();
@@ -281,6 +294,17 @@ function handleEventClick(info) {
       })
     });
   }
+function styleEvent(info) {
+  const status = info.event.extendedProps.status || info.event.title.split(":")[0];
+  if (status.includes("Заплановано")) info.el.style.backgroundColor = "#FFD700";
+  else if (status.includes("Перенесено")) info.el.style.backgroundColor = "#1E90FF";
+  else if (status.includes("Відмінений")) info.el.style.backgroundColor = "#DC143C";
+  else if (status.includes("Проведений")) info.el.style.backgroundColor = "#32CD32";
+
+  // додаємо підказку при наведенні
+  const comment = info.event.extendedProps.comment || "";
+  info.el.setAttribute("title", `${info.event.extendedProps.partnerName}\n${comment}`);
+}
 
   // оновлення дати у бекенді
   async function updateDateInBackend(event, newDate, newTime) {
@@ -312,18 +336,23 @@ function handleEventClick(info) {
     }
 
     const startDateTime = date + "T" + time;
+const endDateTime = new Date(startDateTime);
+endDateTime.setMinutes(endDateTime.getMinutes() + 30);
 
-    calendar.addEvent({
-      title: "Заплановано: " + partnerName,
-      start: startDateTime,
-      extendedProps: { 
-        partnerId: partnerId, 
-        partnerName: partnerName, 
-        comment: comment,
-        status: "Заплановано",
-        date: date
-      }
-    });
+calendar.addEvent({
+  title: "Заплановано: " + partnerName,
+  start: startDateTime,
+  end: endDateTime.toISOString().slice(0,16), // ISO без секунд
+  extendedProps: { 
+    partnerId: partnerId, 
+    partnerName: partnerName, 
+    comment: comment,
+    status: "Заплановано",
+    date: date
+  }
+});
+
+
 
     try {
       await fetch("https://script.google.com/macros/s/AKfycbyiJCBy3wIvCZEaLqZLu5-_dWEKKLJpU-KM9Sj3xEOFbUDyYQ5narIU1dNdjT5MhDq66Q/exec", {
@@ -432,6 +461,13 @@ function startVisit() {
     openVisitModal(partnerId, partnerName);
   }
 }
+// закриття модалки при кліку на фон
+const modal = document.getElementById("visitModal");
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) {
+    modal.style.display = "none";
+  }
+});
 
 
 </script>

@@ -52,7 +52,7 @@ input, select {
   width: 100%; 
   margin: 0px;
   box-sizing: border-box;
-  background-color: #bcf8be;
+  background-color: #effff0;
   color: #000;
 }
 .vital { background-color: #26a12b; }
@@ -103,10 +103,10 @@ td.to-sell {
 }
 .date-time-partner {
 
-  display: grid;
-  grid-template-columns: repeat(4,minmax(200px, 3fr));  
-  gap: 20px;
-  margin-bottom: 20px;
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 20px;
+
 }
 .quantity {
   width: 60px;
@@ -121,23 +121,23 @@ gap: 20px;}
   <img src="./logo.svg" alt="logo" width="360">
   <p id="userInfo"></p>
 <form id="pharmacyVisitForm">
-  
+  <br><br>
   <div class="date-time-partner" >
     <label>Дата:</label>
-      <input type="date" id="visitDate" readonly>
+      <input type="date" id="visitDate" readonly><br>
     <label>Час:</label>
-      <input type="time" id="visitTime" readonly>
+      <input type="time" id="visitTime" readonly><br>
     <label>Партнер:</label>
-      <select id="partnerSelect"></select>
+      <select id="partnerSelect"></select><br>
     <label>Місто:</label>
-      <select id="city"></select><br><br>
+      <select id="city"></select><br>
     <label>Адреса:</label>
-      <select id="pharmacyAddress"></select><br><br>
+      <select id="pharmacyAddress"></select><br>
     <label>Особа:</label>
-      <input type="text" id="contactName">
+      <input type="text" id="contactName"><br>
     <label>Телефон:</label>
-      <input type="text" id="contactPhone"><br><br>
-  </div>  
+      <input type="text" id="contactPhone"><br>
+  </div>  <br><br>
   <div class="date-knowledge" >
     <label>Викладка:</label>
       <input type="checkbox" class="available" id="pharmacyDisplay"><br><br>
@@ -147,9 +147,9 @@ gap: 20px;}
           <option value="high">Висока</option>
           <option value="medium">Середня</option>
           <option value="low">Низька</option>
-      </select><br><br>
-  </div>
-  <label>Коментар:</label>
+      </select>
+  </div><br><br>
+  <label>Коментар:</label><br><br>
   <input type="text" id="pharmacyComment"><br><br>  
   
   <!-- Таблиця продуктів -->
