@@ -138,8 +138,6 @@
 
     <label>Дата:</label>
     <input type="text" id="visitDate" placeholder="Оберіть дату"style='background-color: #26a12b; color: white;'>
-
-    <label>Час:</label>
     <label for="visitTime">Час:</label>
 <select id="visitTime">
   <option value="08:00">08:00</option>
@@ -180,7 +178,7 @@
 <div id="visitModal" class="modal" style="display:none;">
   <div class="modal-content">
     <h3 id="modalTitle"></h3>
-    <button id="startBtn">Почати</button>
+    <button id="startBtn" >Почати</button>
     <button id="rescheduleBtn">Перенести</button>
     <input type="text" id="newDate" style="display:none;">
     <select id="newTime" style="display:none;">
@@ -222,42 +220,87 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
-    
-  const userNames = {
-    fedir: "Олександр Красніков",
-    olena: "Тетяна Романовська",
-    office: "Офіс",
-    andriy: "Тетяна Кліменко",
-    maria: "Тетяна Демус",
-    serhiy: "Ілона Бабенко"
-  };
-  const userMap = {
+const userNames = {
+  fedir: "Олександр Красніков",
+  olena: "Тетяна Романовська",
+  office: "Офіс",
+  andriy: "Тетяна Кліменко",
+  maria: "Тетяна Демус",
+  serhiy: "Ілона Бабенко"
+};
+
+const userMap = {
   fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
   olena: [11,53,45,146,181,27,601,108,10],
   office: [1,2,3,4,5],
   andriy: [18,19],
   maria: [49,46,36,7,28,30,37,14,56,38,60],
   serhiy: [12,75,13,8,21,67,48]
-  };
-  const currentUserKey = localStorage.getItem("currentUser");
-  if (!currentUserKey) {
-    alert("Будь ласка, увійдіть спочатку!");
-    window.location.href = "index.html";
-  } else {
-    const displayName = userNames[currentUserKey] || currentUserKey;
-    document.body.insertAdjacentHTML("afterbegin", "<p>Ви увійшли як: " + displayName + "</p>");
+};
+
+const currentUserKey = localStorage.getItem("currentUser");
+if (!currentUserKey) {
+  alert("Будь ласка, увійдіть спочатку!");
+  window.location.href = "index.html";
+} else {
+  const displayName = userNames[currentUserKey] || currentUserKey;
+  document.body.insertAdjacentHTML("afterbegin", "<p>Ви увійшли як: " + displayName + "</p>");
+}
+
+// універсальна функція отримання партнерів з Google Sheets
+async function fetchPartners(sheetId) {
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=sheet1`;
+    const res = await fetch(url);
+    const text = await res.text();
+    const json = JSON.parse(text.substr(47).slice(0, -2));
+
+    return json.table.rows.map(r => {
+      const corpRaw = r.c[0]?.v || "";
+      const idMatch = corpRaw.match(/^(\d+)/);
+      const id = idMatch ? parseInt(idMatch[1], 10) : 0;
+      const name = corpRaw.replace(/^(\d+)\.\s*/, "");
+      return { id, name };
+    }).filter(p => p.id && p.name);
+  } catch (err) {
+    console.error("Помилка отримання партнерів:", err);
+    return [];
   }
-  function initPartners(userKey) {
-    const partners = JSON.parse(localStorage.getItem("partners")) || [];
-    const ids = userMap[userKey] || [];
-    const filtered = partners.filter(p => ids.includes(Number(p.id)));
-    const partnerSelect = document.getElementById("partnerSelect");
-    partnerSelect.innerHTML = "";
-    filtered.forEach(p => {
-      partnerSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-    });
-    partnerSelect.innerHTML += `<option value="pharmacy">Аптека</option>`;
+}
+
+async function initPartners(user) {
+  const sheetId = "1CUEcXgBAUIKvg0k2JePbhSH-_S01HcEi"; // твій ID таблиці
+  const partners = await fetchPartners(sheetId);
+
+  console.log("▶ Отримано партнерів:", partners);
+
+  localStorage.setItem("partners", JSON.stringify(partners));
+
+  const ids = userMap[user] || [];
+  let filtered = partners.filter(p => ids.includes(p.id));
+
+  // якщо нічого не знайшли — показати всіх
+  if (filtered.length === 0) {
+    filtered = partners;
   }
+
+  const partnerSelect = document.getElementById("partnerSelect");
+  if (!partnerSelect) {
+    console.error("Елемент partnerSelect не знайдено у DOM");
+    return;
+  }
+
+  partnerSelect.innerHTML = `<option value="all">Всі партнери</option>`;
+  filtered.forEach(p => {
+    partnerSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+  });
+
+  // завжди додаємо «Аптека»
+  partnerSelect.innerHTML += `<option value="pharmacy">Аптека</option>`;
+
+  console.log("▶ initPartners: збережено партнерів", filtered.length);
+}
+
 
 let calendar;
 document.addEventListener("DOMContentLoaded", () => {
@@ -282,78 +325,47 @@ document.addEventListener("DOMContentLoaded", () => {
     eventClick: handleEventClick,
     eventDidMount: styleEvent,
 
-    eventDrop: function(info) {
-      const event = info.event;
-      const status = event.extendedProps.status;
+eventDrop: function(info) {
+  const event = info.event;
+  const status = event.extendedProps.status;
 
-      // ❌ Якщо статус не "Заплановано" — одразу повертаємо назад
-      if (status !== "Заплановано") {
-        info.revert();
-        return;
-      }
+  if (status !== "Заплановано") {
+    info.revert();
+    return;
+  }
 
-      // Форматуємо нову дату і час
-      const newDate = FullCalendar.formatDate(event.start, {
-        year: 'numeric', month: '2-digit', day: '2-digit'
-      });
-      const newTime = FullCalendar.formatDate(event.start, {
-        hour: '2-digit', minute: '2-digit', hour12: false
-      });
+  const newDate = event.startStr.split("T")[0];
+  const newTime = event.startStr.split("T")[1].substring(0,5);
 
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const chosenDate = new Date(newDate);
-      chosenDate.setHours(0,0,0,0);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const chosenDate = new Date(newDate);
+  chosenDate.setHours(0,0,0,0);
 
-      // Якщо перенесли у минуле — повертаємо назад
-      if (chosenDate < today) {
-        info.revert();
-        return;
-      }
+  if (chosenDate < today) {
+    info.revert();
+    return;
+  }
 
-      // Перевірка часу на слот
-      if (!isValidSlot(newTime)) {
-        info.revert();
-        return;
-      }
+  if (!isValidSlot(newTime)) {
+    info.revert();
+    return;
+  }
 
-      // ✅ Відкриваємо модалку підтвердження перенесення
-      showConfirmModal(`Перенести візит на ${newDate} ${newTime}?`, async () => {
-        event.setExtendedProp('status', 'Перенесено');
-        event.setProp('title', `Перенесено: ${event.extendedProps.partnerName}`);
-        const el = event.extendedProps.elRef;
-        if (el) styleEvent({ event: event, el: el });
+  showConfirmModal(`Перенести візит на ${newDate} ${newTime}?`, async () => {
+    // головне — викликати бекенд‑оновлення
+    await updateDateInBackend(event, newDate, newTime);
+  }, () => {
+    info.revert();
+  });
+}
 
-        await updateDateInBackend(event, newDate, newTime);
-      }, () => {
-        info.revert();
-      });
-    }
   });
 
   calendar.render();
   loadVisits();
 });
 
-// Функція показу модалки підтвердження
-function showConfirmModal(message, onYes, onNo) {
-  const modal = document.getElementById('confirmModal');
-  document.getElementById('confirmTitle').innerText = message;
-  modal.style.display = 'block';
-
-  const yesBtn = document.getElementById('confirmYes');
-  const noBtn = document.getElementById('confirmNo');
-
-  yesBtn.onclick = () => {
-    modal.style.display = 'none';
-    if (onYes) onYes();
-  };
-  noBtn.onclick = () => {
-    modal.style.display = 'none';
-    if (onNo) onNo();
-  };
-}
-
 
 // Функція показу модалки підтвердження
 function showConfirmModal(message, onYes, onNo) {
@@ -373,14 +385,13 @@ function showConfirmModal(message, onYes, onNo) {
     if (onNo) onNo();
   };
 }
-
 
 function styleEvent(info) {
   const status = info.event.extendedProps.status || info.event.title.split(":")[0];
   if (status.includes("Заплановано")) info.el.style.backgroundColor = "#FFD700";
   else if (status.includes("Перенесено")) info.el.style.backgroundColor = "#1E90FF";
   else if (status.includes("Відмінено")) info.el.style.backgroundColor = "#DC143C";
-  else if (status.includes("Проведено")) info.el.style.backgroundColor = "#32CD32";
+  else if (status.includes("Виконано")) info.el.style.backgroundColor = "#32CD32";
 
   const comment = info.event.extendedProps.comment || "";
   info.el.setAttribute("title", `${info.event.extendedProps.partnerName}\n${comment}`);
@@ -396,7 +407,7 @@ function handleEventClick(info) {
   today.setHours(0,0,0,0);
 
   // ❌ Відмінені та виконані візити не редагуються
-  if (status === "Відмінено" || status === "Проведено") {
+  if (status === "Відмінено" || status === "Виконано") {
     return;
   }
 
@@ -406,17 +417,29 @@ function handleEventClick(info) {
   document.getElementById('visitModal').style.display = 'block';
 
   // Кнопка "Почати"
-  document.getElementById('startBtn').onclick = () => {
+  document.getElementById('startBtn').onclick = async () => {
     if (isPast) {
       alert("Неможливо почати візит у минулому");
       return;
     }
+
     if (event.extendedProps.partnerId === "pharmacy" || event.extendedProps.partnerName === "Аптека") {
       const userName = event.extendedProps.userName;
       window.location.href = `visitpharm.html?userName=${encodeURIComponent(userName)}`;
       return;
     }
-    updateStatusInBackend(event, 'Проведено');
+
+    // ✅ міняємо тільки статус локально
+    event.setExtendedProp('status', 'Виконано');
+    event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
+
+    const el = event.extendedProps.elRef;
+    if (el) styleEvent({ event: event, el: el });
+
+    // ✅ синхронізація з localStorage і бекендом
+    await updateStatusInBackend(event, 'Виконано');
+
+    // перехід на сторінку візиту
     window.location.href = `visits.html?partnerId=${event.extendedProps.partnerId}`;
   };
 
@@ -426,7 +449,7 @@ function handleEventClick(info) {
   const newTimeInput = document.getElementById('newTime');
   const confirmRescheduleBtn = document.getElementById('confirmReschedule');
 
-  if (status === "Перенесено") {
+  if (status !== "Заплановано") {
     rescheduleBtn.style.display = "none";
     newDateInput.style.display = "none";
     newTimeInput.style.display = "none";
@@ -497,7 +520,7 @@ async function updateStatusInBackend(event, newStatus) {
   }
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbxEjC2-3-JMa1CcpX0Xq1BERUaooyNdOJNPesaRl9vV1XdZMi7CrXc6M0e-Z5nip8w1SA/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -541,7 +564,7 @@ async function updateDateInBackend(event, newDate, newTime) {
   if (el) styleEvent({ event: event, el: el });
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbxEjC2-3-JMa1CcpX0Xq1BERUaooyNdOJNPesaRl9vV1XdZMi7CrXc6M0e-Z5nip8w1SA/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -559,7 +582,7 @@ async function addVisit() {
   const date = document.getElementById("visitDate").value;
   const time = document.getElementById("visitTime").value;
   const comment = document.getElementById("visitComment").value;
-  const visitId = Date.now().toString();
+  const visitId = Date.now().toString(); // унікальний ID
 
   if (!date || !time) {
     alert("Будь ласка, виберіть дату і час");
@@ -571,13 +594,11 @@ async function addVisit() {
   const chosenDate = new Date(date);
   chosenDate.setHours(0,0,0,0);
 
-  // 2. Не можна запланувати у минуле
   if (chosenDate < today) {
     alert("Не можна запланувати візит у минуле");
     return;
   }
 
-  // 5. Перевірка часу на слот
   if (!isValidSlot(time)) {
     alert("Час має бути між 08:00 і 18:30 з кроком 30 хв");
     return;
@@ -587,7 +608,7 @@ async function addVisit() {
   const endDateTime = new Date(startDateTime);
   endDateTime.setMinutes(endDateTime.getMinutes() + 30);
 
-  // локально
+  // локально у календарі
   calendar.addEvent({
     id: visitId,
     title: "Заплановано: " + partnerName,
@@ -600,12 +621,27 @@ async function addVisit() {
       comment: comment,
       status: "Заплановано",
       date: date,
+      time: time,
       userName: userNames[currentUserKey]
     }
   });
 
+  // локальне сховище
+  let visits = JSON.parse(localStorage.getItem("visits")) || [];
+  visits.push({
+    visitId: visitId,   // тепер зберігається!
+    partnerId: partnerId,
+    partnerName: partnerName,
+    comment: comment,
+    status: "Заплановано",
+    date: date,
+    time: time,
+    userName: userNames[currentUserKey]
+  });
+  localStorage.setItem("visits", JSON.stringify(visits));
+
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbxEjC2-3-JMa1CcpX0Xq1BERUaooyNdOJNPesaRl9vV1XdZMi7CrXc6M0e-Z5nip8w1SA/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -623,21 +659,34 @@ async function addVisit() {
 }
 
 
-function getPartnerIdByName(partnerName) {
-  const partners = JSON.parse(localStorage.getItem("partners")) || [];
-  const found = partners.find(p => p.name === partnerName);
-  return found ? found.id : null;
-}
-
 async function loadVisits() {
   try {
     const currentUserKey = localStorage.getItem("currentUser");
     const currentUserName = userNames[currentUserKey];
-    const res = await fetch("https://script.google.com/macros/s/AKfycbxEjC2-3-JMa1CcpX0Xq1BERUaooyNdOJNPesaRl9vV1XdZMi7CrXc6M0e-Z5nip8w1SA/exec");
+
+    const res = await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec");
     const text = await res.text();
     const visits = JSON.parse(text);
+
     const myVisits = visits.filter(v => v.userName === currentUserName);
 
+    // оновлюємо localStorage з visitId
+    localStorage.setItem("visits", JSON.stringify(myVisits.map(v => ({
+  visitId: v.visitId,   // обов’язково зберігаємо!
+  partnerId: getPartnerIdByName(v.partnerName),
+  partnerName: v.partnerName,
+  comment: v.comment,
+  status: v.status,
+  date: v.date,
+  time: v.time,
+  userName: v.userName
+}))));
+
+
+    // очищаємо календар перед додаванням
+    calendar.getEvents().forEach(e => e.remove());
+
+    // додаємо події у календар
     myVisits.forEach(v => {
       const startDateTime = normalizeDate(v.date, v.time);
       const endDateTime = new Date(startDateTime);
@@ -649,12 +698,13 @@ async function loadVisits() {
         start: startDateTime,
         end: endDateTime.toISOString(),
         extendedProps: {
-          visitId: v.visitId,   // тепер є
+          visitId: v.visitId,   // тепер є і в події
           partnerId: pid,
           partnerName: v.partnerName,
           comment: v.comment,
           status: v.status,
           date: v.date,
+          time: v.time,
           userName: v.userName
         }
       });
@@ -664,6 +714,11 @@ async function loadVisits() {
   }
 }
 
+function getPartnerIdByName(name) {
+  const partners = JSON.parse(localStorage.getItem("partners")) || [];
+  const partner = partners.find(p => p.name === name);
+  return partner ? partner.id : 0;
+}
 
 function normalizeDate(dateStr, timeStr) {
     dateStr = String(dateStr).trim();
@@ -677,22 +732,22 @@ function normalizeDate(dateStr, timeStr) {
     }
     return timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T00:00`;
   }
-  function startVisit() {
-  const partnerSelect = document.getElementById("partnerSelect");
-  const partnerId = partnerSelect.value;
-  const partnerName = partnerSelect.options[partnerSelect.selectedIndex].text;
-  if (partnerId === "pharmacy") {
-       window.location.href = "visitpharm.html";
-  } else {
-       openVisitModal(partnerId, partnerName);
-  }
+  function startVisit(event) {
+  const now = new Date();
+  const currentDate = now.toISOString().slice(0,10); // yyyy-MM-dd
+  const currentTime = now.toTimeString().slice(0,5); // HH:mm
+
+  // локально змінюємо статус і заголовок
+  event.setExtendedProp('status', 'Виконано');
+  event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
+
+  const el = event.extendedProps.elRef;
+  if (el) styleEvent({ event: event, el: el });
+
+  // головне — викликати бекенд‑оновлення
+  updateDateInBackend(event, currentDate, currentTime);
 }
-const modal = document.getElementById("visitModal");
-modal.addEventListener("click", (e) => {
-  if (e.target === modal) {
-    modal.style.display = "none";
-  }
-});
+
 // Календарик: тільки сьогодні і майбутнє, без суботи й неділі
 flatpickr("#visitDate", {
   dateFormat: "Y-m-d",
