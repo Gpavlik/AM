@@ -265,7 +265,7 @@ async function initPartners(userKey) {
   const filtered = pharmacies.filter(p => ids.includes(p.partnerId));
 
   const partnerSelect = document.getElementById("partnerSelect");
-  partnerSelect.innerHTML = "";
+  partnerSelect.innerHTML = `<option value="">Оберіть партнера</option>`;
 
   [...new Set(filtered.map(p => p.partnerName))].forEach(name => {
     const pid = filtered.find(p => p.partnerName === name).partnerId;
@@ -280,7 +280,7 @@ function initCitySelect(userKey, partnerId) {
   const filtered = pharmacies.filter(p => ids.includes(p.partnerId) && p.partnerId == partnerId);
 
   const citySelect = document.getElementById("city");
-  citySelect.innerHTML = "";
+  citySelect.innerHTML = `<option value="">Оберіть місто</option>`;
 
   [...new Set(filtered.map(p => p.city))].forEach(city => {
     citySelect.innerHTML += `<option value="${city}">${city}</option>`;
@@ -304,7 +304,7 @@ document.getElementById("pharmacySearch").addEventListener("input", (e) => {
   );
 
   const addressSelect = document.getElementById("pharmacyAddress");
-  addressSelect.innerHTML = "";
+  addressSelect.innerHTML ="";
 
   filtered.forEach(p => {
     addressSelect.innerHTML += `<option value="${p.address}">${p.address}</option>`;
@@ -318,7 +318,7 @@ function initAddressSelect(userKey, partnerId, city) {
   const filtered = pharmacies.filter(p => ids.includes(p.partnerId) && p.partnerId == partnerId && p.city === city);
 
   const addressSelect = document.getElementById("pharmacyAddress");
-  addressSelect.innerHTML = "";
+  addressSelect.innerHTML += `<option value="">Оберіть аптеку</option>`;
 
   filtered.forEach(p => {
     addressSelect.innerHTML += `<option value="${p.address}">${p.address}</option>`;
