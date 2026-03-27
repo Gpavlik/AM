@@ -81,6 +81,20 @@ button {
   cursor: pointer;
   transition: background 0.3s ease;
 }
+input[type="checkbox"] {
+  appearance: none;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color:  #ffffff, transparent;
+  transition: background-color 0.5s ease;
+}
+input[type="checkbox"]:checked {
+  background-color: #4caf50;
+  
+}
 
 button:hover {
   background-color: #003300;
@@ -104,7 +118,7 @@ td.to-sell {
 .date-time-partner {
 
 display: grid;
-grid-template-columns: repeat(3, 1fr);
+grid-template-columns: repeat(2, 1fr);
 gap: 20px;
 
 }
@@ -119,22 +133,23 @@ gap: 20px;}
 <body>
   <h1>Візит в аптеку</h1>
   <img src="./logo.svg" alt="logo" width="360">
-  <p id="userInfo"></p>
+    <p id="userInfo"></p>
 <form id="pharmacyVisitForm">
   <br><br>
   <div class="date-time-partner" >
     <label>Дата:</label>
-      <input type="date" id="visitDate" readonly><br>
+      <input type="date" id="visitDate" readonly>
     <label>Час:</label>
-      <input type="time" id="visitTime" readonly><br>
+      <input type="time" id="visitTime" readonly>
     <label>Партнер:</label>
-      <select id="partnerSelect"></select><br>
+      <select id="partnerSelect"></select>
     <label>Місто:</label>
-      <select id="city"></select><br>
+      <select id="city"></select>
     <label>Адреса:</label>
-      <select id="pharmacyAddress"></select><br>
+    <input type="text" id="pharmacySearch" placeholder="Введіть назву або адресу"><br><br>
+      <select id="pharmacyAddress"></select>
     <label>Особа:</label>
-      <input type="text" id="contactName"><br>
+      <input type="text" id="contactName">
     <label>Телефон:</label>
       <input type="text" id="contactPhone"><br>
   </div>  <br><br>
@@ -207,7 +222,16 @@ const userMap = {
   maria: [49,46,36,7,28,30,37,14,56,38,60,1,2,3,4,5],
   serhiy: [12,75,13,8,21,67,48,1,2,3,4,5]
 };
+const currentUser = localStorage.getItem("currentUser");
+let selectedPartnerName = "";
 
+if (!currentUser) {
+  alert("Будь ласка, увійдіть спочатку!");
+  window.location.href = "login.html";
+} else {
+  document.getElementById("userInfo").textContent =
+    "Ви увійшли як: " + (userNames[currentUser] || currentUser);
+}
 // Список продуктів
 const productList = [
   "CLK№50","CLK№5","CLK№25","CL2GK№50","HPAg","Ultra","Solomini№5","Secret№2",
@@ -262,6 +286,30 @@ function initCitySelect(userKey, partnerId) {
     citySelect.innerHTML += `<option value="${city}">${city}</option>`;
   });
 }
+// Фільтрація аптек за введеним текстом
+document.getElementById("pharmacySearch").addEventListener("input", (e) => {
+  const searchValue = e.target.value.toLowerCase();
+  const partnerId = document.getElementById("partnerSelect").value;
+  const city = document.getElementById("city").value;
+
+  const pharmacies = JSON.parse(localStorage.getItem("pharmacies")) || [];
+  const ids = userMap[currentUser] || [];
+
+  // фільтруємо по партнеру, місту і введеному тексту
+  const filtered = pharmacies.filter(p =>
+    ids.includes(p.partnerId) &&
+    p.partnerId == partnerId &&
+    p.city === city &&
+    (p.address.toLowerCase().includes(searchValue) || p.partnerName.toLowerCase().includes(searchValue))
+  );
+
+  const addressSelect = document.getElementById("pharmacyAddress");
+  addressSelect.innerHTML = "";
+
+  filtered.forEach(p => {
+    addressSelect.innerHTML += `<option value="${p.address}">${p.address}</option>`;
+  });
+});
 
 // Заповнення адрес для вибраного партнера і міста
 function initAddressSelect(userKey, partnerId, city) {
@@ -336,7 +384,14 @@ function savePharmacyVisit() {
   });
 
   const urlParams = new URLSearchParams(window.location.search);
-  const userName = urlParams.get("userName") || localStorage.getItem("currentUserName");
+let userName = urlParams.get("userName") || localStorage.getItem("currentUserName");
+
+// якщо userName порожній, беремо з userNames[currentUser]
+if (!userName) {
+  const currentUser = localStorage.getItem("currentUser");
+  userName = userNames[currentUser] || currentUser;
+}
+
 
   const data = {
   action: "savePharmacyVisit",
@@ -359,7 +414,7 @@ function savePharmacyVisit() {
 
   console.log("▶ Відправка візиту:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycbyiJCBy3wIvCZEaLqZLu5-_dWEKKLJpU-KM9Sj3xEOFbUDyYQ5narIU1dNdjT5MhDq66Q/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbxEjC2-3-JMa1CcpX0Xq1BERUaooyNdOJNPesaRl9vV1XdZMi7CrXc6M0e-Z5nip8w1SA/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(data),
