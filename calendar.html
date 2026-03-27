@@ -25,6 +25,14 @@
       flex-direction: column;
       align-items: center;
     }
+    .main-content {
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+      width: 90%;
+      max-width: 1200px;
+      margin-top: 20px;
+    }
     #calendar {
       max-width: 1200px;
       width: 90%;
@@ -128,14 +136,14 @@
 </head>
 <body>
   <h2>Календар планувальник</h2>
-  <img src="./logo.svg" alt="logo" width="360">
-
+  <div class="main-content">
+  <img src="./logo.svg" alt="logo" width="260">
   <!-- Форма додавання візиту -->
-  <div id="addVisitForm">
+  <div id="addVisitForm" class=>
     <h3>Створити візит</h3>
     <label>Партнер:</label>
     <select id="partnerSelect"></select>
-
+    <button id="applyFilterBtn">Відфільтрувати</button>
     <label>Дата:</label>
     <input type="text" id="visitDate" placeholder="Оберіть дату"style='background-color: #26a12b; color: white;'>
     <label for="visitTime">Час:</label>
@@ -168,12 +176,22 @@
     <input type="text" id="visitComment" placeholder="Наприклад: перемовини, підпис документів"style='background-color: #26a12b; color: white;'>
 
     <button onclick="addVisit()">Додати візит</button>
-  </div>
-
+  
+<label>Фільтр по статусу:</label>
+<select id="statusFilter">
+  <option value="all">Всі статуси</option>
+  <option value="Заплановано">Заплановано</option>
+  <option value="Перенесено">Перенесено</option>
+  <option value="Виконано">Виконано</option>
+  <option value="Відмінено">Відмінено</option>
+</select>
+</div>
+ <img src="./ph.png" alt="logo" width="260">
+</div >
   <!-- Календар -->
   <div id="calendar"></div>
   <a href="menu.html"><button class="button">Перейти в меню</button></a>
-  <img src="./ph.png" alt="logo" width="360">
+ 
 <!-- Модальне вікно -->
 <div id="visitModal" class="modal" style="display:none;">
   <div class="modal-content">
@@ -520,7 +538,7 @@ async function updateStatusInBackend(event, newStatus) {
   }
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -530,6 +548,46 @@ async function updateStatusInBackend(event, newStatus) {
     })
   });
 }
+// слухаємо зміну селектора партнера і статусу
+//document.getElementById("partnerSelect").addEventListener("change", filterVisits);
+//document.getElementById("statusFilter").addEventListener("change", filterVisits);
+
+// кнопка "Відфільтрувати"
+document.getElementById("applyFilterBtn").addEventListener("click", () => {
+  filterVisits();
+});
+
+function filterVisits() {
+  const selectedPartner = document.getElementById("partnerSelect").value;
+  const selectedStatus = document.getElementById("statusFilter").value;
+  const allVisits = JSON.parse(localStorage.getItem("visits")) || [];
+
+  // очищаємо календар
+  calendar.getEvents().forEach(e => e.remove());
+
+  // фільтруємо
+  const filtered = allVisits.filter(v => {
+    const partnerMatch = (selectedPartner === "all" || v.partnerId == selectedPartner);
+    const statusMatch = (selectedStatus === "all" || v.status === selectedStatus);
+    return partnerMatch && statusMatch;
+  });
+
+  // додаємо у календар
+  filtered.forEach(v => {
+    const startDateTime = normalizeDate(v.date, v.time);
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+
+    calendar.addEvent({
+      id: v.visitId,
+      title: `${v.status}: ${v.partnerName}`,
+      start: startDateTime,
+      end: endDateTime.toISOString(),
+      extendedProps: v
+    });
+  });
+}
+
 
 
 async function updateDateInBackend(event, newDate, newTime) {
@@ -564,7 +622,7 @@ async function updateDateInBackend(event, newDate, newTime) {
   if (el) styleEvent({ event: event, el: el });
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -641,7 +699,7 @@ async function addVisit() {
   localStorage.setItem("visits", JSON.stringify(visits));
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -664,7 +722,7 @@ async function loadVisits() {
     const currentUserKey = localStorage.getItem("currentUser");
     const currentUserName = userNames[currentUserKey];
 
-    const res = await fetch("https://script.google.com/macros/s/AKfycbx0MIiuznTTmqimKOMytiyhXzj_ClH0fDxB_v9V8JRqI2R7OJk7C-Ete2qNVP4wbWMP3w/exec");
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec");
     const text = await res.text();
     const visits = JSON.parse(text);
 
