@@ -137,17 +137,15 @@ gap: 20px;}
 <form id="pharmacyVisitForm">
   <br><br>
   <div class="date-time-partner" >
-    <label>Дата:</label>
-      <input type="date" id="visitDate" readonly>
-    <label>Час:</label>
-      <input type="time" id="visitTime" readonly>
+      <input type="date" id="visitDate" readonly hidden required>
+      <input type="time" id="visitTime" readonly hidden required>
     <label>Партнер:</label>
-      <select id="partnerSelect"></select>
+      <select id="partnerSelect" required></select>
     <label>Місто:</label>
-      <select id="city"></select>
+      <select id="city" required></select>
     <label>Адреса:</label>
     <input type="text" id="pharmacySearch" placeholder="Введіть назву або адресу"><br><br>
-      <select id="pharmacyAddress"></select>
+      <select id="pharmacyAddress" required></select>
     <label>Особа:</label>
       <input type="text" id="contactName">
     <label>Телефон:</label>
@@ -155,9 +153,9 @@ gap: 20px;}
   </div>  <br><br>
   <div class="date-knowledge" >
     <label>Викладка:</label>
-      <input type="checkbox" class="available" id="pharmacyDisplay"><br><br>
+      <input type="checkbox" class="available" id="pharmacyDisplay" required><br><br>
     <label>Обізнаність:</label>
-      <select id="pharmacyAwareness">
+      <select id="pharmacyAwareness" required>
           <option value="">Оберіть рівень</option>
           <option value="high">Висока</option>
           <option value="medium">Середня</option>
@@ -166,9 +164,28 @@ gap: 20px;}
   </div><br><br>
   <label>Коментар:</label><br><br>
   <input type="text" id="pharmacyComment"><br><br>  
-  <!-- Додай у форму аптечного візиту -->
-<button type="button" id="photoBtn">📸 Зробити фото</button>
+  <!-- Кнопка для фото з камери -->
+<button type="button" id="cameraBtn">📸 Зробити фото</button>
 
+<!-- Кнопка для вибору фото з галереї -->
+<input type="file" id="galleryInput" accept="image/*" style="display:none;">
+<button type="button" id="galleryBtn">🖼️ Додати з галереї</button>
+
+<!-- Прев’ю -->
+<div id="photoPreview" style="margin-top:10px;">
+  <img id="previewImg" src="" alt="Прев’ю фото" style="max-width:200px; display:none; border:1px solid #ccc;"/>
+</div>
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec" method="POST">
+  <input type="hidden" name="action" value="savePharmacyPhoto">
+  <input type="hidden" name="userName" id="userNameField">
+  <input type="hidden" name="date" id="dateField">
+  <input type="hidden" name="time" id="timeField">
+  <input type="hidden" name="partnerId" id="partnerIdField">
+  <input type="hidden" name="partnerName" id="partnerNameField">
+  <input type="hidden" name="city" id="cityField">
+  <input type="hidden" name="address" id="addressField">
+  <input type="hidden" name="photo" id="photoField">
+</form>
   <!-- Таблиця продуктів -->
   <table border="1" id="productsTable">
     <thead>
@@ -437,63 +454,45 @@ if (!userName) {
   document.getElementById("pharmacyVisitForm").reset();
 }
 
-document.getElementById("photoBtn").addEventListener("click", async () => {
+// Кнопка "Зробити фото" (камера через getUserMedia)
+document.getElementById("cameraBtn").addEventListener("click", async () => {
   try {
     const photo = await takePhoto();
-
-    const data = {
-      action: "savePharmacyPhoto",
-      userName: localStorage.getItem("currentUserName"),
-      date: document.getElementById("visitDate").value,
-      time: document.getElementById("visitTime").value,
-      partnerId: document.getElementById("partnerSelect").value,
-      partnerName: document.getElementById("partnerSelect").options[
-        document.getElementById("partnerSelect").selectedIndex
-      ].text,
-      city: document.getElementById("city").value,
-      address: document.getElementById("pharmacyAddress").value,
-      photo: photo // base64 картинка
-    };
-
-    await sendPhotoData(data);
-    alert("Фото відправлено у Google Таблицю!");
+    showPreview(photo);
+    await sendPhoto(photo);
   } catch (err) {
     console.error("Помилка фото:", err);
     alert("Не вдалося зробити фото");
   }
 });
 
+// Кнопка "Додати з галереї"
+document.getElementById("galleryBtn").addEventListener("click", () => {
+  document.getElementById("galleryInput").click();
+});
 
-async function takePhoto() {
-  const video = document.createElement("video");
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-  video.srcObject = stream;
-  await video.play();
+// Обробка вибраного фото з галереї
+document.getElementById("galleryInput").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0);
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const photoBase64 = e.target.result;
+    showPreview(photoBase64);
+    await sendPhoto(photoBase64);
+  };
+  reader.readAsDataURL(file);
+});
 
-  // зупиняємо камеру
-  stream.getTracks().forEach(track => track.stop());
-
-  // отримуємо фото у base64
-  return canvas.toDataURL("image/png");
-}
-async function sendPhotoData(data) {
-  await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
-    method: "POST",
-     mode: "no-cors",
-    headers: { "Content-Type": "application/json" }, // ← обов’язково
-    body: JSON.stringify(data)
-  });
+// Допоміжні функції
+function showPreview(photo) {
+  const preview = document.getElementById("previewImg");
+  preview.src = photo;
+  preview.style.display = "block";
 }
 
-async function captureAndSendPhoto() {
-  const photo = await takePhoto();
-
+async function sendPhoto(photo) {
   const data = {
     action: "savePharmacyPhoto",
     userName: localStorage.getItem("currentUserName"),
@@ -505,11 +504,41 @@ async function captureAndSendPhoto() {
     ].text,
     city: document.getElementById("city").value,
     address: document.getElementById("pharmacyAddress").value,
-    photo: photo // base64 картинка
+    photo: photo
   };
 
-  await sendPhotoData(data);
-  alert("Фото відправлено!");
+  const res = await fetch("https://script.google.com/macros/s/ТВОЙ_СПРАВЖНІЙ_ID/exec", {
+    method: "POST",
+
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  const txt = await res.text();
+  console.log("▶ Відповідь від скрипта:", txt);
+  alert("Фото відправлено у Google Таблицю!");
+}
+
+async function takePhoto() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  const video = document.createElement("video");
+  video.srcObject = stream;
+  await video.play();
+
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+
+    // Додаємо затримку для стабілізації камери
+    setTimeout(() => {
+      ctx.drawImage(video, 0, 0);
+      const photoBase64 = canvas.toDataURL("image/png");
+      stream.getTracks().forEach(track => track.stop());
+      resolve(photoBase64);
+    }, 1000); // 1 секунда
+  });
 }
 </script>
 </body> 
