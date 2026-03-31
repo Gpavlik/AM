@@ -474,7 +474,7 @@ const detailedData = Array.from(rows).map(tr => {
 
   try {
     // Відправка короткої інформації
-    await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbyh-55CfiUBNuC6IINCBK28QZNyTdt4drdR9Gz_pcvFPenWJBQj6QODYJxIfj_Wu6GoaQ/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(shortData),
@@ -482,7 +482,7 @@ const detailedData = Array.from(rows).map(tr => {
     });
 
     // Відправка детальної інформації
-    await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbyh-55CfiUBNuC6IINCBK28QZNyTdt4drdR9Gz_pcvFPenWJBQj6QODYJxIfj_Wu6GoaQ/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({
@@ -531,7 +531,7 @@ document.getElementById("planNextVisit").addEventListener("click", async () => {
   };
 
   try {
-    await fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbyh-55CfiUBNuC6IINCBK28QZNyTdt4drdR9Gz_pcvFPenWJBQj6QODYJxIfj_Wu6GoaQ/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(data),
