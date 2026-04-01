@@ -30,6 +30,17 @@ th, td {
   padding: 8px;
   text-align: center;
   word-wrap: break-word;
+  vertical-align: middle;
+}
+
+.styled-checkbox {
+  width: 20px;
+  height: 20px;
+  margin: 0;                 /* прибираємо відступи */
+  cursor: pointer;         /* курсор при наведенні */
+  background-color: #26a12b;
+  border: 1px solid #ffffff;
+  border-radius: 4px;       /* закруглені краї */
 }
 
 th {
@@ -152,7 +163,12 @@ td.to-sell {
         <th>Пенетрація</th>
         <th>Залишки</th>
         <th>Термін придатності</th>
-        <th>Дата звіту</th> <!-- нова колонка -->
+        <th>Дата звіту</th>
+        <th>Конкуренти</th>>
+        <th>ВТМ</th>
+        <th>Ексклюзив</th>
+        <th>Умови%</th>
+         <!-- нова колонка -->
       </tr>
     </thead>
     <tbody id="lastVisitBody"></tbody>
@@ -173,12 +189,12 @@ td.to-sell {
     <label for="visitComment">Коментар:</label>
     <input type="text" id="visitComment" placeholder="Введіть коментар">
     </div>
-
     <table>
       <thead>
         <tr>
           <th>Назва</th><th>%</th><th>Кількість</th>
-          <th>Пенетрація</th><th>Залишки</th><th>Термін придатності</th>
+          <th>Пенетрація%</th><th>Залишки</th><th>Термін придатності</th>
+          <th>Конкуренти</th>><th>ВТМ</th><th>Ексклюзив</th><th>Умови%</th>
         </tr>
       </thead>
       <tbody id="currentVisitBody"></tbody>
@@ -317,6 +333,10 @@ async function fetchVisits(visitsUrl, partnerId) {
       penetration: r[8],
       stock: r[9],
       expiry: r[10],
+      competitors: r[11],
+      vtm: r[12] === "Ні",
+      exclusive: r[13] === "Ні",
+      conditions: r[14],
       reportDate: formatDate(r[2]),
       _date: rowDate
     };
@@ -401,6 +421,10 @@ function renderLastVisit(products = []) {
       <td>${p.stock || ""}</td>
       <td>${formatExpiry(p.expiry) || ""}</td>
       <td>${p.reportDate || ""}</td>
+      <td>${p.competitors || ""}</td>
+      <td>${p.vtm ? "Так" : "Ні"}</td>
+      <td>${p.exclusive ? "Так" : "Ні"}</td>
+      <td>${p.conditions || ""}</td>
     </tr>`;
   });
 
@@ -422,6 +446,10 @@ function renderCurrentVisit() {
       <td contenteditable="true"></td>
       <td contenteditable="true"></td>
       <td><input type="date"></td>
+      <td contenteditable="true"></td>
+      <td><input type="checkbox" class="styled-checkbox"></td>
+      <td><input type="checkbox" class="styled-checkbox"></td>
+      <td contenteditable="true"></td>
     </tr>`;
   });
 }
@@ -463,18 +491,22 @@ const detailedData = Array.from(rows).map(tr => {
     qty: cells[2].textContent.trim(),
     penetration: cells[3].textContent.trim(),
     stock: cells[4].textContent.trim(),
-    expiry: cells[5].querySelector("input").value
+    expiry: cells[5].querySelector("input").value,
+    competitors: cells[6].textContent.trim(),
+    vtm: cells[7].querySelector("input[type='checkbox']").checked,
+    exclusive: cells[8].querySelector("input[type='checkbox']").checked,
+    conditions: cells[9].textContent.trim()
   };
 })
 // фільтруємо лише ті рядки, де є хоча б одне заповнене поле
 .filter(r =>
-  r.percent || r.qty || r.penetration || r.stock || r.expiry
+  r.percent || r.qty || r.penetration || r.stock || r.expiry || r.competitors || r.vtm || r.exclusive || r.conditions
 );
 
 
   try {
     // Відправка короткої інформації
-    await fetch("https://script.google.com/macros/s/AKfycbyh-55CfiUBNuC6IINCBK28QZNyTdt4drdR9Gz_pcvFPenWJBQj6QODYJxIfj_Wu6GoaQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(shortData),
@@ -482,7 +514,7 @@ const detailedData = Array.from(rows).map(tr => {
     });
 
     // Відправка детальної інформації
-    await fetch("https://script.google.com/macros/s/AKfycbyh-55CfiUBNuC6IINCBK28QZNyTdt4drdR9Gz_pcvFPenWJBQj6QODYJxIfj_Wu6GoaQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({
@@ -531,7 +563,7 @@ document.getElementById("planNextVisit").addEventListener("click", async () => {
   };
 
   try {
-    await fetch("https://script.google.com/macros/s/AKfycbyh-55CfiUBNuC6IINCBK28QZNyTdt4drdR9Gz_pcvFPenWJBQj6QODYJxIfj_Wu6GoaQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(data),

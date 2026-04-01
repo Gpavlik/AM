@@ -175,7 +175,7 @@ gap: 20px;}
 <div id="photoPreview" style="margin-top:10px;">
   <img id="previewImg" src="" alt="Прев’ю фото" style="max-width:200px; display:none; border:1px solid #ccc;"/>
 </div>
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec" method="POST">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec" method="POST">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -434,7 +434,7 @@ if (!userName) {
 
   console.log("▶ Відправка візиту:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycbwZf0arntH7Z_ZEXQndmHccQzQ1Fq06ItDf8ee3fl6g-EcIk_isjfoaGv2ZZfy36WD3nA/exec", {
+  fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(data),
@@ -507,7 +507,7 @@ async function sendPhoto(photo) {
     photo: photo
   };
 
-  const res = await fetch("https://script.google.com/macros/s/ТВОЙ_СПРАВЖНІЙ_ID/exec", {
+  const res = await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
     method: "POST",
 
     headers: { "Content-Type": "application/json" },
