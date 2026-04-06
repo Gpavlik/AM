@@ -76,13 +76,6 @@ td.to-sell {
   </label>
   <button id="loginBtn">Увійти</button>
 </div>
-
-<div id="menu" style="display:none;">
-  <h2>Меню</h2>
-  <button onclick="goTo('menu.html')">Головне меню</button>
-
-
-</div>
  <img src="./ph.png" alt="logo" width="560">
 <script>
   // Список користувачів і паролів
@@ -105,17 +98,13 @@ td.to-sell {
     currentUser = u;
     // зберігаємо користувача у localStorage
     localStorage.setItem("currentUser", u);
-    alert("Вхід успішний!");
-    document.getElementById("loginForm").style.display = "none";
-    document.getElementById("menu").style.display = "block";
+    //alert("Вхід успішний!");
+    window.location.href = "menu.html"; // редірект на потрібну сторінку
   } else {
     alert("Невірний пароль!");
   }
 });
 
-function goTo(page) {
-  window.location.href = page;
-}
 </script>
 </body>
 </html>
