@@ -501,7 +501,7 @@ const detailedData = Array.from(rows).map(tr => {
 
   try {
     // Відправка короткої інформації
-    await fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(shortData),
@@ -509,7 +509,7 @@ const detailedData = Array.from(rows).map(tr => {
     });
 
     // Відправка детальної інформації
-    await fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({

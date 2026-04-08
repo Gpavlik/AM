@@ -165,7 +165,7 @@ gap: 20px;}
   <label>Коментар:</label><br><br>
   <input type="text" id="pharmacyComment"><br><br>  
  
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec" method="POST">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -438,7 +438,7 @@ if (!userName) {
 
   console.log("▶ Відправка візиту:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(data),
@@ -468,23 +468,15 @@ document.getElementById("galleryBtn").addEventListener("click", () => {
 });
 
 // Обробка фото з камери
-document.getElementById("cameraInput").addEventListener("change", async (event) => {
+document.getElementById("cameraInput").addEventListener("change", (event) => {
   const file = event.target.files[0];
-  if (!file) {
-    console.warn("Фото не вибрано");
-    return;
-  }
-  handleFile(file);
+  if (file) handleFile(file);
 });
 
 // Обробка фото з галереї
-document.getElementById("galleryInput").addEventListener("change", async (event) => {
+document.getElementById("galleryInput").addEventListener("change", (event) => {
   const file = event.target.files[0];
-  if (!file) {
-    console.warn("Фото не вибрано");
-    return;
-  }
-  handleFile(file);
+  if (file) handleFile(file);
 });
 
 // Загальна функція обробки файлу
@@ -510,10 +502,9 @@ function showPreview(photo) {
   console.log("▶ Прев’ю фото оновлено");
 }
 
-// Відправка фото на бекенд
-async function sendPhoto(photo) {
-  console.log("▶ Підготовка фото для відправки, довжина:", photo.length);
-
+// Відправка фото
+async function sendPhoto(photoBase64) {
+  // базові дані
   const userNames = {
     fedir: "Олександр Красніков",
     olena: "Тетяна Романовська",
@@ -524,36 +515,38 @@ async function sendPhoto(photo) {
     admin: "admin"
   };
   let userKey = localStorage.getItem("currentUser");
-  let userName = userNames[userKey] || userKey;
+  let userName = userNames[userKey] || userKey || "невідомий";
 
-  const data = {
-    action: "savePharmacyPhoto",
-    userName: userName,
-    date: document.getElementById("visitDate")?.value || "",
-    time: document.getElementById("visitTime")?.value || "",
-    partnerId: document.getElementById("partnerSelect")?.value || "",
-    partnerName: document.getElementById("partnerSelect")?.options[
-      document.getElementById("partnerSelect")?.selectedIndex
-    ]?.text || "",
-    city: document.getElementById("city")?.value || "",
-    address: document.getElementById("pharmacyAddress")?.value || "",
-    photo: photo
-  };
+  // створюємо FormData
+  const formData = new FormData();
+  formData.append("action", "savePharmacyPhoto");
+  formData.append("userName", userName);
+  formData.append("date", document.getElementById("visitDate")?.value || "");
+  formData.append("time", document.getElementById("visitTime")?.value || "");
+  formData.append("partnerId", document.getElementById("partnerSelect")?.value || "");
+  formData.append("partnerName", document.getElementById("partnerSelect")?.options[
+    document.getElementById("partnerSelect")?.selectedIndex
+  ]?.text || "");
+  formData.append("city", document.getElementById("city")?.value || "");
+  formData.append("address", document.getElementById("pharmacyAddress")?.value || "");
+
+  // додаємо фото як Base64
+  if (photoBase64) {
+    formData.append("photo", photoBase64);
+  }
 
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
       method: "POST",
-      mode: "no-cors",  
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      mode: "no-cors", // залишаємо, як ти просив
+      body: formData
     });
 
-    const txt = await res.text();
-    console.log("▶ Відповідь від скрипта:", txt);
-    alert("Фото відправлено у Google Таблицю!");
+    console.log("▶ Дані відправлені через FormData");
+    alert("Фото та дані відправлені у Google Таблицю!");
   } catch (err) {
-    console.error("Помилка відправки фото:", err);
-    alert("Не вдалося відправити фото");
+    console.error("Помилка відправки:", err);
+    alert("Не вдалося відправити дані");
   }
 }
 </script>

@@ -212,7 +212,7 @@ async function loadReport(type) {
     userName = userNames[userName];
   }
 
-  const url = `https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec?type=${type}&startDate=${startDate}&endDate=${endDate}&userName=${encodeURIComponent(userName)}&partnerName=${encodeURIComponent(selectedPartnerName)}&productName=${encodeURIComponent(selectedProductName)}`;
+  const url = `https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec?type=${type}&startDate=${startDate}&endDate=${endDate}&userName=${encodeURIComponent(userName)}&partnerName=${encodeURIComponent(selectedPartnerName)}&productName=${encodeURIComponent(selectedProductName)}`;
 
   const res = await fetch(url);
   const raw = await res.text();
@@ -384,7 +384,7 @@ function formatExpiry(expiry) {
 }
 
 async function loadContactsReport() {
-  const url = `https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec?type=contacts`;
+  const url = `https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec?type=contacts`;
   
   try {
     const res = await fetch(url);
