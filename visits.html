@@ -201,12 +201,7 @@ td.to-sell {
     </table>
   </div>
   </form>
-<div style="margin-top: 20px;">
-<label for="nextVisitDate">Дата наступної зустрічі:</label>
-<input type="date" id="nextVisitDate">
-<label for="nextVisitTime">Час наступної зустрічі:</label>
-<input type="time" id="nextVisitTime"><br><br>
-<button id="planNextVisit">Запланувати</button>
+  <div style="margin: 40px 0; display: flex; gap: 20px;">
   <button id="sendReport">Відправити дані</button>
   <a href="calendar.html"><button>Перейти в календар</button></a>
   <a href="menu.html"><button>Перейти в меню</button></a>
@@ -506,7 +501,7 @@ const detailedData = Array.from(rows).map(tr => {
 
   try {
     // Відправка короткої інформації
-    await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(shortData),
@@ -514,7 +509,7 @@ const detailedData = Array.from(rows).map(tr => {
     });
 
     // Відправка детальної інформації
-    await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({
@@ -536,49 +531,6 @@ const detailedData = Array.from(rows).map(tr => {
     alert("Не вдалося зберегти візит");
   }
 });
-
-document.getElementById("planNextVisit").addEventListener("click", async () => {
-  const status = document.getElementById("visitStatus").value;
-  const comment = document.getElementById("visitComment").value;
-
-  const currentUserKey = localStorage.getItem("currentUser");
-  const currentUserName = localStorage.getItem("currentUserName") || userNames[currentUserKey];
-
-  const nextDate = document.getElementById("nextVisitDate").value;
-  const nextTime = document.getElementById("nextVisitTime").value;
-
-  if (!nextDate || !nextTime) {
-    alert("Будь ласка, вкажіть дату та час наступної зустрічі!");
-    return;
-  }
-
-  const data = {
-    userName: currentUserName,
-    partnerName: selectedPartnerName,
-    date: nextDate,
-    time: nextTime,
-    status: "Заплановано",
-    comment,
-    data: [] // обов’язково поле data, навіть якщо пусте
-  };
-
-  try {
-    await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" }
-    });
-
-    alert("Наступна зустріч запланована!");
-    location.reload();
-  } catch (err) {
-    console.error("Помилка збереження:", err);
-    alert("Не вдалося запланувати зустріч");
-  }
-});
-
-
 </script>
 </body>
 <html>

@@ -164,18 +164,21 @@ gap: 20px;}
   </div><br><br>
   <label>Коментар:</label><br><br>
   <input type="text" id="pharmacyComment"><br><br>  
-  <!-- Кнопка для фото з камери -->
+  <!-- Кнопка для фото -->
 <button type="button" id="cameraBtn">📸 Зробити фото</button>
 
-<!-- Кнопка для вибору фото з галереї -->
-<input type="file" id="galleryInput" accept="image/*" style="display:none;">
+<!-- Інпут для камери -->
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+
+<!-- Кнопка для галереї -->
 <button type="button" id="galleryBtn">🖼️ Додати з галереї</button>
+<input type="file" id="galleryInput" accept="image/*" style="display:none;">
 
 <!-- Прев’ю -->
 <div id="photoPreview" style="margin-top:10px;">
   <img id="previewImg" src="" alt="Прев’ю фото" style="max-width:200px; display:none; border:1px solid #ccc;"/>
 </div>
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec" method="POST">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec" method="POST">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -434,7 +437,7 @@ if (!userName) {
 
   console.log("▶ Відправка візиту:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(data),
@@ -454,92 +457,106 @@ if (!userName) {
   document.getElementById("pharmacyVisitForm").reset();
 }
 
-// Кнопка "Зробити фото" (камера через getUserMedia)
-document.getElementById("cameraBtn").addEventListener("click", async () => {
-  try {
-    const photo = await takePhoto();
-    showPreview(photo);
-    await sendPhoto(photo);
-  } catch (err) {
-    console.error("Помилка фото:", err);
-    alert("Не вдалося зробити фото");
-  }
+// Виклик камери
+document.getElementById("cameraBtn").addEventListener("click", () => {
+  document.getElementById("cameraInput").click();
 });
 
-// Кнопка "Додати з галереї"
+// Виклик галереї
 document.getElementById("galleryBtn").addEventListener("click", () => {
   document.getElementById("galleryInput").click();
 });
 
-// Обробка вибраного фото з галереї
+// Обробка фото з камери
+document.getElementById("cameraInput").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) {
+    console.warn("Фото не вибрано");
+    return;
+  }
+  handleFile(file);
+});
+
+// Обробка фото з галереї
 document.getElementById("galleryInput").addEventListener("change", async (event) => {
   const file = event.target.files[0];
-  if (!file) return;
+  if (!file) {
+    console.warn("Фото не вибрано");
+    return;
+  }
+  handleFile(file);
+});
 
+// Загальна функція обробки файлу
+function handleFile(file) {
   const reader = new FileReader();
   reader.onload = async (e) => {
     const photoBase64 = e.target.result;
+    if (!photoBase64 || !photoBase64.startsWith("data:image")) {
+      console.error("Некоректне фото");
+      return;
+    }
     showPreview(photoBase64);
     await sendPhoto(photoBase64);
   };
   reader.readAsDataURL(file);
-});
+}
 
-// Допоміжні функції
+// Прев’ю
 function showPreview(photo) {
   const preview = document.getElementById("previewImg");
   preview.src = photo;
   preview.style.display = "block";
+  console.log("▶ Прев’ю фото оновлено");
 }
 
+// Відправка фото на бекенд
 async function sendPhoto(photo) {
+  console.log("▶ Підготовка фото для відправки, довжина:", photo.length);
+
+  const userNames = {
+    fedir: "Олександр Красніков",
+    olena: "Тетяна Романовська",
+    office: "Офіс",
+    andriy: "Тетяна Кліменко",
+    maria: "Тетяна Демус",
+    serhiy: "Ілона Бабенко",
+    admin: "admin"
+  };
+  let userKey = localStorage.getItem("currentUser");
+  let userName = userNames[userKey] || userKey;
+
   const data = {
     action: "savePharmacyPhoto",
-    userName: localStorage.getItem("currentUserName"),
-    date: document.getElementById("visitDate").value,
-    time: document.getElementById("visitTime").value,
-    partnerId: document.getElementById("partnerSelect").value,
-    partnerName: document.getElementById("partnerSelect").options[
-      document.getElementById("partnerSelect").selectedIndex
-    ].text,
-    city: document.getElementById("city").value,
-    address: document.getElementById("pharmacyAddress").value,
+    userName: userName,
+    date: document.getElementById("visitDate")?.value || "",
+    time: document.getElementById("visitTime")?.value || "",
+    partnerId: document.getElementById("partnerSelect")?.value || "",
+    partnerName: document.getElementById("partnerSelect")?.options[
+      document.getElementById("partnerSelect")?.selectedIndex
+    ]?.text || "",
+    city: document.getElementById("city")?.value || "",
+    address: document.getElementById("pharmacyAddress")?.value || "",
     photo: photo
   };
 
-  const res = await fetch("https://script.google.com/macros/s/AKfycby2cHxH5gnNb27F7swDyVQ3bkMXH9gjiUzIHMvoHKYIyK6Q3_kOpRr33JGpT9NMLUnS-A/exec", {
-    method: "POST",
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec", {
+      method: "POST",
+      mode: "no-cors",  
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
 
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  });
-
-  const txt = await res.text();
-  console.log("▶ Відповідь від скрипта:", txt);
-  alert("Фото відправлено у Google Таблицю!");
-}
-
-async function takePhoto() {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-  const video = document.createElement("video");
-  video.srcObject = stream;
-  await video.play();
-
-  return new Promise((resolve) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-
-    // Додаємо затримку для стабілізації камери
-    setTimeout(() => {
-      ctx.drawImage(video, 0, 0);
-      const photoBase64 = canvas.toDataURL("image/png");
-      stream.getTracks().forEach(track => track.stop());
-      resolve(photoBase64);
-    }, 1000); // 1 секунда
-  });
+    const txt = await res.text();
+    console.log("▶ Відповідь від скрипта:", txt);
+    alert("Фото відправлено у Google Таблицю!");
+  } catch (err) {
+    console.error("Помилка відправки фото:", err);
+    alert("Не вдалося відправити фото");
+  }
 }
 </script>
-</body> 
+</script>
+</body>
 </html>
