@@ -164,20 +164,7 @@ gap: 20px;}
   </div><br><br>
   <label>Коментар:</label><br><br>
   <input type="text" id="pharmacyComment"><br><br>  
-  <!-- Кнопка для фото -->
-<button type="button" id="cameraBtn">📸 Зробити фото</button>
-
-<!-- Інпут для камери -->
-<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
-
-<!-- Кнопка для галереї -->
-<button type="button" id="galleryBtn">🖼️ Додати з галереї</button>
-<input type="file" id="galleryInput" accept="image/*" style="display:none;">
-
-<!-- Прев’ю -->
-<div id="photoPreview" style="margin-top:10px;">
-  <img id="previewImg" src="" alt="Прев’ю фото" style="max-width:200px; display:none; border:1px solid #ccc;"/>
-</div>
+ 
 <form id="photoForm" action="https://script.google.com/macros/s/AKfycbyRTIT1ty-pQnw8yPPxnjnXzc-NeZJ3wpigm9KwR7O0F2kePw74ha2TAUnzwxCNyDqUTQ/exec" method="POST">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
@@ -205,7 +192,21 @@ gap: 20px;}
   </table>
 
   <br>
-  <div style="text-align: center;" >  
+  <div style="text-align: center; display: flex; gap: 10px; flex-direction: row; flex-wrap: wrap; justify-content: center;" >  
+ <!-- Кнопка для фото -->
+<button type="button" id="cameraBtn">📸 Зробити фото</button>
+
+<!-- Інпут для камери -->
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+
+<!-- Кнопка для галереї -->
+<button type="button" id="galleryBtn">🖼️ Додати з галереї</button>
+<input type="file" id="galleryInput" accept="image/*" style="display:none;">
+
+<!-- Прев’ю -->
+<div id="photoPreview" style="margin-top:10px;">
+  <img id="previewImg" src="" alt="Прев’ю фото" style="max-width:200px; display:none; border:1px solid #ccc;"/>
+</div>
   <button type="button" onclick="savePharmacyVisit()">Зберегти візит</button>
    <button><a style="text-decoration: none; color: white;" href="calendar.html">Перейти в календар</a></button>
 <a href="menu.html"><button>Перейти в меню</button></a>
