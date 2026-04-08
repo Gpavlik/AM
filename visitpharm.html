@@ -449,13 +449,12 @@ if (!userName) {
 
     console.log("▶ Відповідь від скрипта:", txt);
     alert("Візит збережено у phvisits!");
+    location.reload();
   })
   .catch(err => {
     console.error("Помилка збереження:", err);
     alert("Не вдалося зберегти візит");
   });
-
-  document.getElementById("pharmacyVisitForm").reset();
 }
 
 // Виклик камери
@@ -557,7 +556,6 @@ async function sendPhoto(photo) {
     alert("Не вдалося відправити фото");
   }
 }
-</script>
 </script>
 </body>
 </html>
