@@ -2,79 +2,145 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/jpg" href="bol.jpg">
   <title>Звіт</title>
   <style>
-     body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: linear-gradient(135deg, #009400, #004d00);
-      color: #ffffff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #7a7a7a; padding: 6px; text-align: center; }
-    th { background: #adadad; }
-    td.name { text-align: left; }
-    .vital { background-color: #26a12b; }
-    .valuable { background-color: #286ca3; }
-    .acceptable { background-color: #e0d037; }
-    .interfering { background-color: #c78a90; }
-    .filters {
-      display: flex; gap: 10px; margin-top: 20px;
-      flex-wrap: wrap; justify-content: center;
-    }
-    label {
-      display: block; margin: 10px auto 5px auto; font-weight: bold;
-      width: px; text-align: left;
-    }
-    input {
-      width: 120px; padding: 10px; margin: 5px auto 15px auto;
-      border: none; border-radius: 6px; font-size: 1rem;
-
-    }
-    select {
-      width: 500px; padding: 10px; margin: 5px auto 15px auto;
-      border: none; border-radius: 6px; font-size: 1rem;
-    }
-    button {
-      width: 200px; padding: 12px; margin-top: 10px;
-      background-color: #004d00; color: #ffffff;
-      border: solid 1px #c2ffc2; border-radius: 6px; font-size: 1rem;
-      cursor: pointer; transition: background 0.3s ease;
-    }
-     h3 { margin-top: 30px; text-align: center; }
-    button:hover { background-color: #25a525; }
-/* стилі для таблиці */
-td.to-sell {
-  text-align: center;
-  font-weight: bold;
-  color: white;
+body {
+  font-family: Arial, sans-serif;
+  margin: 0; padding: 0;
+  background: linear-gradient(135deg, #009400, #004d00);
+  color: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.buttons {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 20px;
 
-    }
+/* базові стилі таблиці */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 20px;
+  overflow-x: auto;
+  display: block;
+}
+
+th, td {
+  border: 1px solid #7a7a7a;
+  padding: 6px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+th {
+  background: #adadad;
+  color: #000;
+}
+
+td.name { text-align: left; font-weight: bold; }
+td { background-color: rgba(255,255,255,0.05); }
+td.to-sell { text-align: center; font-weight: bold; color: white; }
+
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  margin: 10px;
+  font-weight: bold;
+  text-align: left;
+  max-width: 100%;
+}
+
+input, select {
+  width: 100%;
+  max-width: 500px;
+  padding: 10px;
+  margin-top: 5px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+button {
+  width: 200px;
+  padding: 12px;
+  margin-top: 10px;
+  background-color: #004d00;
+  color: #ffffff;
+  border: solid 1px #c2ffc2;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover { background-color: #25a525; }
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* 📱 Телефони (до 480px) */
+@media (max-width: 480px) {
+  h3 { font-size: 1.2rem; }
+  p { font-size: 0.9rem; }
+  table { font-size: 0.75rem; }
+  th, td { padding: 4px; }
+  input, select { max-width: 95%; }
+  button {
+    width: 100%;
+    font-size: 0.9rem;
+  }
+  .buttons { grid-template-columns: 1fr; }
+}
+
+/* 📲 Планшети (481px–768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  h3 { font-size: 1.4rem; }
+  p { font-size: 1rem; }
+  table { font-size: 0.85rem; }
+  th, td { padding: 5px; }
+  input, select { max-width: 90%; }
+  button { width: 70%; font-size: 1rem; }
+  .buttons { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 💻 Десктопи (769px і більше) */
+@media (min-width: 769px) {
+  h3 { font-size: 1.6rem; }
+  p { font-size: 1rem; }
+  table { font-size: 0.95rem; }
+  th, td { padding: 6px; }
+  input { max-width: 120px; }
+  select { max-width: 300px; }
+  button { width: 200px; }
+  .buttons { grid-template-columns: repeat(3, 1fr); }
+}
 </style>
 </head>
 <body>
   <h1>Звіти</h1>
   <p id="userInfo"></p>
-<img src="./logo.svg" alt="logo" width="360">
+<img src="./logo.svg" alt="logo" width="260">
     <!-- Панель кнопок -->
 <div class="filters">
   <label>Дата від: <input type="date" id="startDate"></label>
   <label>Дата до: <input type="date" id="endDate"></label>
 </div>
   <!-- селект користувача показуємо лише адміну -->
-<div id="userFilter" style="display:none;">
+<div class="filters" id="userFilter" style="display:none;">
   <label>Користувач:
     <select id="userName">
       <option value="admin">admin</option>
@@ -87,7 +153,7 @@ td.to-sell {
     </select>
   </label>
 </div>
-<div id="userFilter">
+<div class="filters" id="partnerFilter">
 <!-- Фільтр по партнерах -->
 <label for="partnerSelect">Партнер:
   <select id="partnerSelect">
@@ -103,6 +169,7 @@ td.to-sell {
   </select>
   </label>
 </div>
+
 <div class="buttons">
   <button onclick="loadReport('pharmacy')">Аптечні візити</button>
   <button onclick="loadReport('pharmacyPhoto')">Фото</button>
@@ -111,9 +178,11 @@ td.to-sell {
   <button onclick="loadReport('calendar')">Календар</button>
   <a href="menu.html"><button class="button">Перейти в меню</button></a>
 </div>
-  <div id="report"></div>
+  <div style="margin-top: 20px; padding-left: 20px" id="report"></div>
+  <div class="buttons">
   <button onclick="exportToExcel()">Експортувати в Excel</button>
-  <img src="./ph.png" alt="logo" width="360">
+  </div>
+  <img src="./ph.png" alt="logo" width="260">
 
   
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -212,7 +281,7 @@ async function loadReport(type) {
     userName = userNames[userName];
   }
 
-  const url = `https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec?type=${type}&startDate=${startDate}&endDate=${endDate}&userName=${encodeURIComponent(userName)}&partnerName=${encodeURIComponent(selectedPartnerName)}&productName=${encodeURIComponent(selectedProductName)}`;
+  const url = `https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec?type=${type}&startDate=${startDate}&endDate=${endDate}&userName=${encodeURIComponent(userName)}&partnerName=${encodeURIComponent(selectedPartnerName)}&productName=${encodeURIComponent(selectedProductName)}`;
 
   const res = await fetch(url);
   const raw = await res.text();
@@ -384,7 +453,7 @@ function formatExpiry(expiry) {
 }
 
 async function loadContactsReport() {
-  const url = `https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec?type=contacts`;
+  const url = `https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec?type=contacts`;
   
   try {
     const res = await fetch(url);

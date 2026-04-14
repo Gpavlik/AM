@@ -2,6 +2,8 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <title>Візити</title>
   <link rel="icon" type="image/jpg" href="bol.jpg">
   <style>
@@ -21,6 +23,7 @@
 table {
   border-collapse: collapse;
   width: 100%;
+  max-width: 800px;
   margin-top: 20px;
   table-layout: fixed; /* однакова ширина колонок */
 }
@@ -80,7 +83,8 @@ label {
 }
 
 input, select {
-  width: 500px;
+  width: 100%;
+  max-width: 500px;
   padding: 10px;
   margin: 5px auto 15px auto;
   border: none;
@@ -131,10 +135,23 @@ td.to-sell {
   #nextVisitDate{
    width: 176px; 
   }
+  .table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+@media (max-width: 480px) {
+  h1 { font-size: 1.4rem; }
+  h3 { font-size: 1.2rem; }
+  input, select { max-width: 95%; font-size: 0.9rem; }
+  button { width: 100%; font-size: 0.9rem; }
+  table { font-size: 0.75rem; }
+  th, td { padding: 4px; }
+}
+
 </style>
 <body>
   <h1>Візити</h1>
-  <img src="./logo.svg" alt="logo" width="360">
+  <img src="./logo.svg" alt="logo" width="260">
   <p id="userInfo"></p>
 
   <label for="partnerSelect">Оберіть партнера:</label>
@@ -154,6 +171,7 @@ td.to-sell {
 </div>
   <div id="lastVisit">
   <h3>Дані по продуктах</h3>
+ <div class="table-container">
   <table>
     <thead>
       <tr>
@@ -164,7 +182,7 @@ td.to-sell {
         <th>Залишки</th>
         <th>Термін придатності</th>
         <th>Дата звіту</th>
-        <th>Конкуренти</th>>
+        <th>Конкуренти</th>
         <th>ВТМ</th>
         <th>Ексклюзив</th>
         <th>Умови%</th>
@@ -173,6 +191,7 @@ td.to-sell {
     </thead>
     <tbody id="lastVisitBody"></tbody>
   </table>
+  </div>
 </div>
 <form id="partnerVisitForm">
   <div id="currentVisit">
@@ -189,16 +208,18 @@ td.to-sell {
     <label for="visitComment">Коментар:</label>
     <input type="text" id="visitComment" placeholder="Введіть коментар">
     </div>
+  <div class="table-container">  
     <table>
       <thead>
         <tr>
           <th>Назва</th><th>%</th><th>Кількість</th>
           <th>Пенетрація%</th><th>Залишки</th><th>Термін придатності</th>
-          <th>Конкуренти</th>><th>ВТМ</th><th>Ексклюзив</th><th>Умови%</th>
+          <th>Конкуренти</th><th>ВТМ</th><th>Ексклюзив</th><th>Умови%</th>
         </tr>
       </thead>
       <tbody id="currentVisitBody"></tbody>
     </table>
+</div>
   </div>
   </form>
   <div style="margin: 40px 0; display: flex; gap: 20px;">
@@ -206,7 +227,7 @@ td.to-sell {
   <a href="calendar.html"><button>Перейти в календар</button></a>
   <a href="menu.html"><button>Перейти в меню</button></a>
 </div>
-<img src="./ph.png" alt="logo" width="360">
+<img src="./ph.png" alt="logo" width="260">
 <script type="module">
 // ===== Користувачі та партнери =====
 const userNames = {
@@ -501,7 +522,7 @@ const detailedData = Array.from(rows).map(tr => {
 
   try {
     // Відправка короткої інформації
-    await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(shortData),
@@ -509,7 +530,7 @@ const detailedData = Array.from(rows).map(tr => {
     });
 
     // Відправка детальної інформації
-    await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({

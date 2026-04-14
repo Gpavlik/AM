@@ -2,61 +2,168 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/jpg" href="bol.jpg">
   <title>Історія продажів</title>
   <style>
      body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: linear-gradient(135deg, #009400, #004d00);
-      color: #ffffff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #7a7a7a; padding: 6px; text-align: center; }
-    th { background: #adadad; }
-    td.name { text-align: left; }
-    .vital { background-color: #26a12b; }
-    .valuable { background-color: #286ca3; }
-    .acceptable { background-color: #e0d037; }
-    .interfering { background-color: #c78a90; }
-    label {
-      display: block; margin: 10px auto 5px auto; font-weight: bold;
-      width: 500px; text-align: left;
-    }
-    input {
-      width: 500px; padding: 10px; margin: 5px auto 15px auto;
-      border: none; border-radius: 6px; font-size: 1rem;
-
-    }
-    select {
-      width: 500px; padding: 10px; margin: 5px auto 15px auto;
-      border: none; border-radius: 6px; font-size: 1rem;
-    }
-    button {
-      width: 200px; padding: 12px; margin-top: 10px;
-      background-color: #004d00; color: #ffffff;
-      border: solid 1px #c2ffc2; border-radius: 6px; font-size: 1rem;
-      cursor: pointer; transition: background 0.3s ease;
-    }
-     h3 { margin-top: 30px; text-align: center; }
-    button:hover { background-color: #003300; }
-/* стилі для таблиці */
-td.to-sell {
+  font-family: Arial, sans-serif;
+  margin: 0; padding: 0;
+  background: linear-gradient(135deg, #009400, #004d00);
+  color: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+h1 {
+  margin-top: 30px;
   text-align: center;
+  font-size: 1.8rem;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 20px;
+  overflow-x: auto;
+  display: block;
+}
+
+th, td {
+  border: 1px solid #7a7a7a;
+  padding: 6px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+th {
+  background: #adadad;
+  color: #000;
+}
+
+td.name { text-align: left; }
+td.to-sell { text-align: center; font-weight: bold; color: white; }
+
+.vital { background-color: #26a12b; }
+.valuable { background-color: #286ca3; }
+.acceptable { background-color: #e0d037; }
+.interfering { background-color: #c78a90; }
+
+label {
+  display: flex;
+  flex-direction: column;
+  margin: 10px;
   font-weight: bold;
-  color: white;
+  text-align: left;
+  max-width: 100%;
+  min-width: 60%;
+}
+
+input, select {
+  width: 100%;
+  max-width: 500px;
+  padding: 10px;
+  margin-top: 5px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+button {
+  width: 200px;
+  padding: 12px;
+  margin-top: 10px;
+  background-color: #004d00;
+  color: #ffffff;
+  border: solid 1px #c2ffc2;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover { background-color: #25a525; }
+
+/* 📱 Телефони */
+@media (max-width: 480px) {
+  h1 { font-size: 1.4rem; }
+  input, select { max-width: 95%; font-size: 0.9rem; }
+  button { width: 80%; font-size: 0.9rem; }
+  table { font-size: 0.75rem; }
+  th, td { padding: 4px; }
+}
+
+/* 📲 Планшети */
+@media (min-width: 481px) and (max-width: 768px) {
+  h1 { font-size: 1.6rem; }
+  input, select { max-width: 90%; }
+  button { width: 50%; }
+  table { font-size: 0.85rem; }
+  th, td { padding: 5px; }
+}
+
+/* 💻 Десктопи */
+@media (min-width: 769px) {
+  h1 { font-size: 1.8rem; }
+  input { max-width: 300px; }
+  select { max-width: 300px; }
+  button { width: 200px; }
+  table { font-size: 0.95rem; }
+}
+.product-header {
+  cursor: pointer;
+  position: relative;
+}
+
+.product-filter {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #000;
+  color: #fff;
+  border: 1px solid #7a7a7a;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  padding: 4px;
+  width: 300px;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+/* 📱 Телефони */
+@media (max-width: 480px) {
+  .product-filter {
+    position: static;   /* більше не абсолютний */
+    width: 100%;        /* займає всю ширину */
+    max-height: none;   /* без обмеження висоти */
+    border-radius: 0;
+    margin-top: 8px;
+  }
+}
+
+/* 📲 Планшети */
+@media (min-width: 481px) and (max-width: 768px) {
+  .product-filter {
+    width: 90%; /* ширина адаптивна */
+  }
 }
 </style>
 </head>
 <body>
   <h1>Калькулятор розподілу плану</h1>
 <br><br>
-  <img src="./logo.svg" alt="logo" width="360">
+  <img src="./logo.svg" alt="logo" width="260">
   
   <label>Партнер:
     <select id="partnerSelect"></select>
@@ -80,8 +187,8 @@ td.to-sell {
   <div id="allPartnersClassification"></div>
   <div id="classification"></div>
   <div id="historyPlans"></div>
-  <a href="menu.html"><button>Перейти в меню</button></a>
- <img src="./ph.png" alt="logo" width="360">
+  <button onclick="window.location.href='menu.html'">Перейти в меню</button>
+ <img src="./ph.png" alt="logo" width="260">
 
 <canvas id="planChart" width="400" height="200" color="white"></canvas>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -109,7 +216,8 @@ if (!currentUser) {
   window.location.href = "index.html";
 } else {
   const displayName = userNames[currentUser] || currentUser;
-  document.body.insertAdjacentHTML("afterbegin", "<p>Ви увійшли як: " + displayName + "</p>");
+  const h1 = document.querySelector("h1");
+h1.insertAdjacentHTML("afterend", "<p>Ви увійшли як: " + displayName + "</p>");
 }
 
 function getHistoryUrl(user) {
@@ -550,32 +658,35 @@ function renderHistoryPlans(partners, quarter, historyType, selectedProducts = [
 
   const allProducts = [...new Set(partners.flatMap(p => p.products.map(pr => pr.product)))];
 
- html += "<table><tr>"
-      + "<th>Партнер</th>"
-      + "<th id='productHeader' style='cursor:pointer;position:relative;'>▶Продукт"
-      + "<div id='productFilterContainer' "
-      + "style='display:none;position:absolute;top:100%;left:0;"
-      + "background:#000;color:white;border:1px solid #7a7a7a;border-radius:4px;"
-      + "max-height:200px;overflow:auto;z-index:1000;padding:2px;width:400px;'>"
-      + allProducts.map(prod => {
-          const checked = selectedProducts.includes(prod) ? "checked" : "";
-          return `<label style="display:flex;align-items:start;justify-content:flex-start;">
-                    <span>${prod}</span>
-                    <input type="checkbox" value="${prod}" ${checked}>
-                  </label>`;
-        }).join("")
-      + "</div></th>"
-      + "<th>Історія</th>"
-      + "<th>План</th>"
-      + "<th>Виконано</th>"
-      + "<th>Допродати</th>"
-      + "<th>Дольовий</th>"
-      + "<th>Супер</th>"
-      + "<th>Подобається</th>"
-      + "<th>Задовільнить</th>"
-      + "<th>Замислитися</th>"
-      + "<th>Піти</th>"
-      + "</tr>";
+html += `
+  <table>
+    <tr>
+      <th>Партнер</th>
+      <th id="productHeader" class="product-header">▶ Продукт
+        <div id="productFilterContainer" class="product-filter">
+          ${allProducts.map(prod => {
+            const checked = selectedProducts.includes(prod) ? "checked" : "";
+            return `
+              <label class="filter-option">
+                <input type="checkbox" value="${prod}" ${checked}>
+                <span>${prod}</span>
+              </label>
+            `;
+          }).join("")}
+        </div>
+      </th>
+      <th>Історія</th>
+      <th>План</th>
+      <th>Виконано</th>
+      <th>Допродати</th>
+      <th>Дольовий</th>
+      <th>Супер</th>
+      <th>Подобається</th>
+      <th>Задовільнить</th>
+      <th>Замислитися</th>
+      <th>Піти</th>
+    </tr>
+`;
 
   const keyPrev = `2025_${quarter.replace("Q","")}`;
 

@@ -2,6 +2,8 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <title>Календар планувальник</title>
   <link rel="icon" type="image/jpg" href="bol.jpg">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
@@ -45,6 +47,7 @@
     }
     #addVisitForm {
       margin: 20px auto;
+      width: 100%;
       max-width: 500px;
       padding: 15px;
       border: 1px solid #ffffff;
@@ -68,6 +71,7 @@
       background: #388E3C;
     }
     input, select {
+      box-sizing: border-box;
       border: 1px solid #ffffff;
       padding: 4px;
       border-radius: 4px;
@@ -132,6 +136,29 @@
      ::placeholder {
       color: white; 
     }
+@media (max-width: 480px) {
+  #calendar {
+    height: 400px;
+    padding: 10px;
+  }
+}
+@media (max-width: 480px) {
+  .modal-content {
+    width: 90%;
+    margin: 30% auto;
+  }
+}
+@media (max-width: 480px) {
+  body { font-size: 0.9rem; }
+  h3 { font-size: 1.2rem; }
+  .main-content { flex-direction: column; }
+  #addVisitForm { padding: 10px; }
+  #addVisitForm input, #addVisitForm select, #addVisitForm button {
+    font-size: 0.9rem;
+  }
+}
+
+
   </style>
 </head>
 <body>
@@ -315,7 +342,8 @@ async function initPartners(user) {
 
   // завжди додаємо «Аптека»
   partnerSelect.innerHTML += `<option value="pharmacy">Аптека</option>`;
-
+// завжди додаємо «Лікар»
+  partnerSelect.innerHTML += `<option value="doctor">Лікар</option>`;
   console.log("▶ initPartners: збережено партнерів", filtered.length);
 }
 
@@ -447,6 +475,12 @@ function handleEventClick(info) {
       return;
     }
 
+    if (event.extendedProps.partnerId === "doctor" || event.extendedProps.partnerName === "Лікар") {
+      const userName = event.extendedProps.userName;
+      window.location.href = `docvisit.html?userName=${encodeURIComponent(userName)}`;
+      return;
+    }
+
     // ✅ міняємо тільки статус локально
     event.setExtendedProp('status', 'Виконано');
     event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
@@ -538,7 +572,7 @@ async function updateStatusInBackend(event, newStatus) {
   }
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -622,7 +656,7 @@ async function updateDateInBackend(event, newDate, newTime) {
   if (el) styleEvent({ event: event, el: el });
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -701,7 +735,7 @@ async function addVisit() {
   localStorage.setItem("visits", JSON.stringify(visits));
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
     method: "POST",
     mode: "no-cors",
     headers: { "Content-Type": "application/json" },
@@ -723,7 +757,7 @@ async function loadVisits() {
     const currentUserKey = localStorage.getItem("currentUser");
     const currentUserName = userNames[currentUserKey];
 
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec");
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec");
     const text = await res.text();
     const visits = JSON.parse(text);
 

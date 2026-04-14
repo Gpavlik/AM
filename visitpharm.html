@@ -2,17 +2,18 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>Візит в аптеку</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Візит в аптеку</title>
   <link rel="icon" type="image/jpg" href="bol.jpg">
   <style>
- body {
+body {
   font-family: Arial, sans-serif;
   margin: 0; padding: 0;
   background: linear-gradient(135deg, #009400, #004d00);
   color: #ffffff;
   min-height: 100vh;
-  max-width: 1200px; /* краще max-width, щоб не обрізати */
-  margin: 0 auto;    /* центрування */
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -20,9 +21,9 @@
 
 table {
   border-collapse: collapse;
-  width: 100%;
+  width: 95%;
   margin-top: 20px;
-  }
+}
 
 th, td {
   border: 1px solid #ffffff;
@@ -33,41 +34,32 @@ th, td {
 
 th {
   background: #adadad;
-  color: #000; /* контрастний текст */
+  color: #000;
 }
 
-td.name {
-  text-align: left;
-}
-
-tbody tr:hover {
-  background-color: #26a12b;
-}
+td.name { text-align: left; }
+tbody tr:hover { background-color: #26a12b; }
 
 input, select {
   border: 1px solid #ffffff;
   padding: 10px;
   border-radius: 4px;
   font-size: 13px;
-  width: 100%; 
-  margin: 0px;
+  width: 100%;
+  margin: 0;
   box-sizing: border-box;
   background-color: #effff0;
   color: #000;
 }
-.vital { background-color: #26a12b; }
-.valuable { background-color: #286ca3; }
-.acceptable { background-color: #e0d037; }
-.interfering { background-color: #c78a90; }
 
 label {
   display: block;
   margin: 10px auto 5px auto;
   font-weight: bold;
-  width: 500px;
+  width: 100%;
+  max-width: 500px;
   text-align: center;
 }
-
 
 button {
   width: 220px;
@@ -81,24 +73,19 @@ button {
   cursor: pointer;
   transition: background 0.3s ease;
 }
+button:hover { background-color: #003300; }
+
 input[type="checkbox"] {
   appearance: none;
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   border: 2px solid #333;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  background-color:  #ffffff, transparent;
+  background-color: #fff;
   transition: background-color 0.5s ease;
 }
-input[type="checkbox"]:checked {
-  background-color: #4caf50;
-  
-}
-
-button:hover {
-  background-color: #003300;
-}
+input[type="checkbox"]:checked { background-color: #4caf50; }
 
 h3 {
   margin-top: 30px;
@@ -106,36 +93,73 @@ h3 {
   color: #fff;
 }
 
-td.to-sell {
-  text-align: center;
-  font-weight: bold;
-  color: white;
-}
-.available {
-  width: 30px;
-  height: 30px;
-}
+td.to-sell { text-align: center; font-weight: bold; color: white; }
+
+.available { width: 24px; height: 24px; }
+.quantity { width: 60px; }
+.competitors { width: 150px; }
+
+/* Сітки */
 .date-time-partner {
-
-display: grid;
-grid-template-columns: repeat(2, 1fr);
-gap: 20px;
-
+  padding-left: 20px;
+  max-width: 90%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
 }
-.quantity {
-  width: 60px;
+
+.date-knowledge {
+  padding-left: 20px;
+  max-width: 90%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
 }
-.date-knowledge{
-display: grid; 
-grid-template-columns: repeat(3, 3fr); 
-gap: 20px;}
+
+/* 📱 Телефони */
+@media (max-width: 480px) {
+  h1 { font-size: 1.4rem; }
+  h3 { font-size: 1.2rem; }
+  input, select { font-size: 0.9rem; }
+  button { width: 100%; font-size: 0.9rem; }
+  table { font-size: 0.75rem; }
+  th, td { padding: 4px; }
+  .date-time-partner, .date-knowledge {
+    grid-template-columns: 1fr; /* одна колонка */
+  }
+}
+
+/* 📲 Планшети */
+@media (min-width: 481px) and (max-width: 768px) {
+  h1 { font-size: 1.6rem; }
+  h3 { font-size: 1.3rem; }
+  input, select { font-size: 1rem; }
+  button { width: 80%; }
+  table { font-size: 0.85rem; }
+  th, td { padding: 6px; }
+  .date-time-partner, .date-knowledge {
+    grid-template-columns: repeat(2, 1fr); /* дві колонки */
+  }
+}
+
+/* 💻 Десктопи */
+@media (min-width: 769px) {
+  h1 { font-size: 1.8rem; }
+  h3 { font-size: 1.4rem; }
+  input, select { max-width: 500px; }
+  button { width: 220px; }
+  table { font-size: 1rem; }
+  .date-time-partner, .date-knowledge {
+    grid-template-columns: repeat(2, 1fr); /* дві колонки */
+  }
+}
+
 </style>
 <body>
   <h1>Візит в аптеку</h1>
-  <img src="./logo.svg" alt="logo" width="360">
+  <img src="./logo.svg" alt="logo" width="260">
     <p id="userInfo"></p>
 <form id="pharmacyVisitForm">
-  <br><br>
   <div class="date-time-partner" >
       <input type="date" id="visitDate" readonly hidden required>
       <input type="time" id="visitTime" readonly hidden required>
@@ -144,16 +168,16 @@ gap: 20px;}
     <label>Місто:</label>
       <select id="city" required></select>
     <label>Адреса:</label>
-    <input type="text" id="pharmacySearch" placeholder="Введіть назву або адресу"><br><br>
+    <input type="text" id="pharmacySearch" placeholder="Введіть назву або адресу"><br>
       <select id="pharmacyAddress" required></select>
     <label>Особа:</label>
       <input type="text" id="contactName">
     <label>Телефон:</label>
-      <input type="text" id="contactPhone"><br>
-  </div>  <br><br>
+      <input type="text" id="contactPhone">
+  </div><br>
   <div class="date-knowledge" >
     <label>Викладка:</label>
-      <input type="checkbox" class="available" id="pharmacyDisplay" required><br><br>
+      <input type="checkbox" class="available" id="pharmacyDisplay" required>
     <label>Обізнаність:</label>
       <select id="pharmacyAwareness" required>
           <option value="">Оберіть рівень</option>
@@ -161,11 +185,11 @@ gap: 20px;}
           <option value="medium">Середня</option>
           <option value="low">Низька</option>
       </select>
-  </div><br><br>
-  <label>Коментар:</label><br><br>
-  <input type="text" id="pharmacyComment"><br><br>  
+  </div>
+  <label>Коментар:</label>
+  <input type="text" id="pharmacyComment">
  
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -213,7 +237,7 @@ gap: 20px;}
   </div>    
 </form>
 
-  <img src="./ph.png" alt="logo" width="360">
+  <img src="./ph.png" alt="logo" width="260">
 <script>
 // Зчитуємо userName з URL або localStorage
 function getQueryParam(name) {
@@ -438,7 +462,7 @@ if (!userName) {
 
   console.log("▶ Відправка візиту:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(data),
@@ -536,7 +560,7 @@ async function sendPhoto(photoBase64) {
   }
 
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwW0ar_JXqTIY4jJarIJ3i1YGTHErJoDW_yF668a6_QCPStpof7pHjhB4SDkx44XTigUg/exec", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
       method: "POST",
       mode: "no-cors", // залишаємо, як ти просив
       body: formData
