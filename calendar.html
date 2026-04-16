@@ -276,7 +276,7 @@ const userNames = {
 
 const userMap = {
   fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
-  olena: [11,53,45,146,181,27,601,108,10],
+  olena: [11,53,45,146,181,27,601,108,10,51],
   office: [1,2,3,4,5],
   andriy: [18,19],
   maria: [49,46,36,7,28,30,37,14,56,38,60],
@@ -412,7 +412,21 @@ eventDrop: function(info) {
   loadVisits();
 });
 
-
+function renderVisits(visits) {
+  calendar.getEvents().forEach(e => e.remove());
+  visits.forEach(v => {
+    const startDateTime = normalizeDate(v.date, v.time);
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+    calendar.addEvent({
+      id: v.visitId,
+      title: `${v.status}: ${v.partnerName}`,
+      start: startDateTime,
+      end: endDateTime.toISOString(),
+      extendedProps: v
+    });
+  });
+}
 // Функція показу модалки підтвердження
 function showConfirmModal(message, onYes, onNo) {
   const modal = document.getElementById('confirmModal');
@@ -431,7 +445,13 @@ function showConfirmModal(message, onYes, onNo) {
     if (onNo) onNo();
   };
 }
-
+// закриття модалки при кліку поза нею
+window.onclick = function(event) {
+  const modal = document.getElementById("visitModal");
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+};
 function styleEvent(info) {
   const status = info.event.extendedProps.status || info.event.title.split(":")[0];
   if (status.includes("Заплановано")) info.el.style.backgroundColor = "#FFD700";
@@ -572,7 +592,7 @@ async function updateStatusInBackend(event, newStatus) {
   }
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -656,7 +676,7 @@ async function updateDateInBackend(event, newDate, newTime) {
   if (el) styleEvent({ event: event, el: el });
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -669,10 +689,9 @@ async function updateDateInBackend(event, newDate, newTime) {
   });
 }
 async function addVisit() {
-  const partnerId = document.getElementById("partnerSelect").value;
-  const partnerName = document.getElementById("partnerSelect").options[
-    document.getElementById("partnerSelect").selectedIndex
-  ].text;
+  const partnerSelect = document.getElementById("partnerSelect");
+  const partnerId = partnerSelect.value;
+  const partnerName = partnerSelect.options[partnerSelect.selectedIndex].text;
   const date = document.getElementById("visitDate").value;
   const time = document.getElementById("visitTime").value;
   const comment = document.getElementById("visitComment").value;
@@ -698,9 +717,20 @@ async function addVisit() {
     return;
   }
 
-  const startDateTime = date + "T" + time;
+  const startDateTime = `${date}T${time}`;
   const endDateTime = new Date(startDateTime);
   endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+
+  const newVisit = {
+    visitId,
+    partnerId,
+    partnerName,
+    comment,
+    status: "Заплановано",
+    date,
+    time,
+    userName: userNames[currentUserKey]
+  };
 
   // локально у календарі
   calendar.addEvent({
@@ -708,104 +738,80 @@ async function addVisit() {
     title: "Заплановано: " + partnerName,
     start: startDateTime,
     end: endDateTime.toISOString(),
-    extendedProps: { 
-      visitId: visitId,
-      partnerId: partnerId,
-      partnerName: partnerName,
-      comment: comment,
-      status: "Заплановано",
-      date: date,
-      time: time,
-      userName: userNames[currentUserKey]
-    }
+    extendedProps: newVisit
   });
 
   // локальне сховище
   let visits = JSON.parse(localStorage.getItem("visits")) || [];
-  visits.push({
-    visitId: visitId,
-    partnerId: partnerId,
-    partnerName: partnerName,
-    comment: comment,
-    status: "Заплановано",
-    date: date,
-    time: time,
-    userName: userNames[currentUserKey]
-  });
+  visits.push(newVisit);
   localStorage.setItem("visits", JSON.stringify(visits));
 
-  // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userName: userNames[currentUserKey],
-      partnerId: partnerId,
-      partnerName: partnerName,
-      date: date,
-      time: time,
-      status: "Заплановано",
-      comment: comment,
-      visitId: visitId
-    })
-  });
+ // бекенд
+await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
+  method: "POST",
+  mode: "no-cors",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    action: "saveCalendarEvent",   // 🔑 обов’язково
+    userName: userNames[currentUserKey],
+    partnerId,
+    partnerName,
+    date,
+    time,
+    status: "Заплановано",
+    comment,
+    visitId
+  })
+});
 }
+
 
 async function loadVisits() {
   try {
     const currentUserKey = localStorage.getItem("currentUser");
     const currentUserName = userNames[currentUserKey];
 
-    const res = await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec");
-    const text = await res.text();
-    const visits = JSON.parse(text);
+    // локальні дані
+    let localVisits = JSON.parse(localStorage.getItem("visits")) || [];
 
-    const myVisits = visits.filter(v => v.userName === currentUserName);
+    // малюємо локальні
+    renderVisits(localVisits);
 
-    // оновлюємо localStorage з visitId
-    localStorage.setItem("visits", JSON.stringify(myVisits.map(v => ({
-  visitId: v.visitId,   // обов’язково зберігаємо!
-  partnerId: getPartnerIdByName(v.partnerName),
-  partnerName: v.partnerName,
-  comment: v.comment,
-  status: v.status,
-  date: v.date,
-  time: v.time,
-  userName: v.userName
-}))));
+    // тягнемо бекенд
+    const res = await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec?type=calendar");
+    const backendVisits = await res.json();
 
+    const myVisits = backendVisits.filter(v => v.userName === currentUserName);
 
-    // очищаємо календар перед додаванням
-    calendar.getEvents().forEach(e => e.remove());
-
-    // додаємо події у календар
-    myVisits.forEach(v => {
-      const startDateTime = normalizeDate(v.date, v.time);
-      const endDateTime = new Date(startDateTime);
-      endDateTime.setMinutes(endDateTime.getMinutes() + 30);
-      const pid = getPartnerIdByName(v.partnerName);
-
-      calendar.addEvent({
-        title: `${v.status}: ${v.partnerName}`,
-        start: startDateTime,
-        end: endDateTime.toISOString(),
-        extendedProps: {
-          visitId: v.visitId,   // тепер є і в події
-          partnerId: pid,
-          partnerName: v.partnerName,
-          comment: v.comment,
-          status: v.status,
-          date: v.date,
-          time: v.time,
-          userName: v.userName
-        }
-      });
-    });
+    // якщо різниця — оновлюємо localStorage і перемальовуємо
+    if (JSON.stringify(localVisits) !== JSON.stringify(myVisits)) {
+      localStorage.setItem("visits", JSON.stringify(myVisits));
+      renderVisits(myVisits);
+    }
   } catch (err) {
     console.error("Помилка завантаження:", err);
   }
 }
+
+function renderVisits(visits) {
+  calendar.getEvents().forEach(e => e.remove());
+
+  visits.forEach(v => {
+    const startDateTime = normalizeDate(v.date, v.time);
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+
+    calendar.addEvent({
+      id: v.visitId,
+      title: `${v.status}: ${v.partnerName}`,
+      start: startDateTime,
+      end: endDateTime.toISOString(),
+      extendedProps: v
+    });
+  });
+}
+
+
 
 function getPartnerIdByName(name) {
   const partners = JSON.parse(localStorage.getItem("partners")) || [];

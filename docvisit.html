@@ -232,7 +232,10 @@ select.error {
   <div class="date-time-partner">
     <label>Область:<select id="regionSelect"></select></label>
     <label>Місто:<select id="citySelect"></select></label>
-    <label>ЛПЗ:<select id="lpzSelect"></select></label>
+    <label for="lpzFilter">Пошук ЛПЗ:
+      <input type="text" id="lpzFilter" placeholder="Введіть назву ЛПЗ...">
+      <select style="margin-top: 20px;" id="lpzSelect"><option value="">Оберіть ЛПЗ</option></select>
+    </label>
     <label>Спеціальність:<select id="specialtySelect"></select>    </label>
     <label>Лікар:<select id="doctorSelect"></select></label>
   </div>
@@ -347,9 +350,20 @@ function populateCities(region) {
 }
 
 function populateLpz(region, city) {
-  const lpzList = [...new Set(doctorsData.filter(d => d.region === region && d.city === city).map(d => d.lpz))];
+  const lpzList = [...new Set(
+    doctorsData.filter(d => d.region === region && d.city === city).map(d => d.lpz)
+  )];
   fillSelect(document.getElementById("lpzSelect"), lpzList);
+
+  // підключаємо фільтр
+  const filterInput = document.getElementById("lpzFilter");
+  filterInput.oninput = () => {
+    const query = filterInput.value.toLowerCase();
+    const filtered = lpzList.filter(lpz => lpz.toLowerCase().includes(query));
+    fillSelect(document.getElementById("lpzSelect"), filtered);
+  };
 }
+
 
 function populateSpecialties(region, city, lpz) {
   const specialties = [...new Set(doctorsData.filter(d => d.region === region && d.city === city && d.lpz === lpz).map(d => d.specialty))];
@@ -622,7 +636,7 @@ async function saveDoctorVisit() {
   });
 
   try {
-    await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({
@@ -640,6 +654,7 @@ async function saveDoctorVisit() {
       headers: { "Content-Type": "application/json" }
     });
     alert("Візит відправлено на збереження!");
+    location.reload();
   } catch (error) {
     console.error("Помилка при збереженні:", error);
     alert("Сталася помилка при збереженні візиту.");
@@ -670,7 +685,7 @@ function validateVisitForm() {
 }
 async function loadPreviousVisit(doctorName) {
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec?type=doctor&doctor=" + encodeURIComponent(doctorName));
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec?type=doctor&doctor=" + encodeURIComponent(doctorName));
     const visits = await res.json();
 
     const tbody = document.getElementById("previousVisitBody");

@@ -240,7 +240,7 @@ const userNames = {
 };
 const userMap = {
     fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
-  olena: [11,53,45,146,181,27,601,108,10],
+  olena: [11,53,45,146,181,27,601,108,10,51],
   office: [1,2,3,4,5],
   andriy: [18,19],
   maria: [49,46,36,7,28,30,37,14,56,38,60],
@@ -522,7 +522,7 @@ const detailedData = Array.from(rows).map(tr => {
 
   try {
     // Відправка короткої інформації
-    await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(shortData),
@@ -530,7 +530,7 @@ const detailedData = Array.from(rows).map(tr => {
     });
 
     // Відправка детальної інформації
-    await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({

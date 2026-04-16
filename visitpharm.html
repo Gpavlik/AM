@@ -189,7 +189,7 @@ td.to-sell { text-align: center; font-weight: bold; color: white; }
   <label>Коментар:</label>
   <input type="text" id="pharmacyComment">
  
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -263,7 +263,7 @@ const userNames = {
 
 const userMap = {
   fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55,1,2,3,4,5],
-  olena: [11,53,45,146,181,27,601,108,10,1,2,3,4,5],
+  olena: [11,53,45,146,181,27,601,108,10,1,2,3,4,5,51],
   office: [1,2,3,4,5],
   andriy: [18,19,1,2,3,4,5],
   maria: [49,46,36,7,28,30,37,14,56,38,60,1,2,3,4,5],
@@ -462,7 +462,7 @@ if (!userName) {
 
   console.log("▶ Відправка візиту:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(data),
@@ -560,7 +560,7 @@ async function sendPhoto(photoBase64) {
   }
 
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbzffROBfLuIoSRhQlgYWh5tgbq3W4PKPNB5qzpx88vyA82BoQ-wwAz2oXVQNZh6VzWUSQ/exec", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec", {
       method: "POST",
       mode: "no-cors", // залишаємо, як ти просив
       body: formData
