@@ -401,7 +401,7 @@ async function loadReport(type) {
     userName = userNames[userKey];
   }
 
-  const url = `https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec?type=${type}`;
+  const url = `https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec?type=${type}`;
 
   const res = await fetch(url);
   const raw = await res.text();
@@ -621,7 +621,7 @@ function formatExpiry(expiry) {
 }
 
 async function loadContactsReport() {
-  const url = `https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec?type=contacts`;
+  const url = `https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec?type=contacts`;
   
   try {
     const res = await fetch(url);
@@ -661,7 +661,7 @@ $(document).ready(function() {
 });
 
 async function loadDoctorVisitsReport() {
-  const url = `https://script.google.com/macros/s/AKfycbzAnb1BNgDK4oZ-QtvIy-rLITiYjVWHO0pWKc5W_27VJUuVQpYATWlxkJfAgjNqZ4klUg/exec?type=doctor`;
+  const url = `https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec?type=doctor`;
   
   try {
     const res = await fetch(url);
