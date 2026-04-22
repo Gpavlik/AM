@@ -257,10 +257,21 @@ input, select {
       color: #ff4444;
       text-shadow: 0 0 10px #ff4444, 0 0 20px #ff4444;
     }
+    #userInfoTop {
+  position: absolute;
+  top: 10px;
+  left: 15px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #ffffff;
+}
+
     </style>
 
 </head>
 <body>
+  <div id="userInfoTop"></div>
+
 <div class="container">
   <div id="filters">
     <!--<input type="date" id="startDate">-->
@@ -295,12 +306,12 @@ input, select {
  <h3>Загальний план продажів</h3>
 
   <div class="filters" id="partnerFilter">
-    <label for="partnerSelect">Партнер:
+  <label for="partnerSelect">Партнер:
     <select id="partnerSelect" multiple="multiple" style="width:300px;"></select>
-</label>
-    <label for="productSelect">Продукт:
+  </label>
+  <label for="productSelect">Продукт:
     <select id="productSelect" multiple="multiple" style="width:300px;"></select>
-</label>
+  </label>
 </div>
 
  <div class="dashboard">
@@ -347,16 +358,6 @@ const userNames = {
   admin: "admin"
 };
 
-const userMap = {
-  fedir: [9,798,31,15,41,26,32,66,47,17,121,61,52,76,29,22,94,23,16,55],
-  olena: [11,53,45,146,181,27,601,108,10],
-  office: [1,2,3,4,5],
-  andriy: [18,19],
-  maria: [49,46,36,7,28,30,37,14,56,38,60],
-  serhiy: [12,75,13,8,21,67,48]
-};
-
-
 const currentUser = localStorage.getItem("currentUser") || "admin";
 
 // ===== План на день =====
@@ -367,12 +368,10 @@ function saveCache(type, data, lastRow) {
   localStorage.setItem(type + "Cache", JSON.stringify(data));
   localStorage.setItem(type + "LastRow", lastRow);
 }
-
 function loadCache(type) {
   const raw = localStorage.getItem(type + "Cache");
   return raw ? JSON.parse(raw) : [];
 }
-
 function loadLastRow(type) {
   return Number(localStorage.getItem(type + "LastRow")) || 1;
 }
@@ -386,29 +385,39 @@ async function fetchIncremental(type, userKey) {
     const resp = await fetch(url);
     const data = await resp.json();
 
-    if (data.length > 0) {
-      let cache = loadCache(type);
+    let cache = loadCache(type);
 
-      // відсікаємо дублікати по visitId
-      const seen = new Set(cache.map(v => v.visitId));
-      const fresh = data.filter(v => !seen.has(v.visitId));
+    if (data.length > 0) {
+      let seen;
+      let fresh;
+
+      if (type === "doctor") {
+        seen = new Set(cache.map(v => v.date + "_" + v.doctor));
+        fresh = data.filter(v => !seen.has(v.date + "_" + v.doctor));
+      } else if (type === "partner") {
+        seen = new Set(cache.map(v => v.date + "_" + v.partnerName));
+        fresh = data.filter(v => !seen.has(v.date + "_" + v.partnerName));
+      } else {
+        // fallback: якщо інший тип
+        seen = new Set(cache.map(v => v.visitId));
+        fresh = data.filter(v => !seen.has(v.visitId));
+      }
 
       if (fresh.length > 0) {
         cache = cache.concat(fresh);
         const newLastRow = lastRow + fresh.length;
         saveCache(type, cache, newLastRow);
       }
-      return cache;
     } else {
       console.log(`ℹ️ Нових даних для [${type}] немає`);
-      return loadCache(type);
     }
+
+    return cache;
   } catch (err) {
     console.error(`❌ Помилка запиту [${type}]:`, err);
     return loadCache(type);
   }
 }
-
 
 // ===== Допоміжні функції =====
 function countWorkingDays(startDate, endDate) {
@@ -419,9 +428,6 @@ function countWorkingDays(startDate, endDate) {
     d.setDate(d.getDate()+1);
   }
   return count;
-}
-function drawGauge(id, value) {
-  new JustGage({ id:id, value:value, min:0, max:100, label:"%", levelColors:["#30B32D","#FFDD00","#F03E3E"], pointer:true });
 }
 function uniqueDoctorVisits(visits) {
   const set = new Set();
@@ -434,17 +440,33 @@ function uniquePartnerVisits(visits) {
   return set.size;
 }
 
+// ===== Глобальні змінні для спідометрів =====
+let gaugeDay, gaugeWeek, gaugeMonth, gaugeQuarter;
+
+// ===== Ініціалізація спідометрів =====
+function initGauges() {
+  gaugeDay = new JustGage({ id:"gaugeDay", value:0, min:0, max:100, label:"%", levelColors:["#30B32D","#FFDD00","#F03E3E"], pointer:true });
+  gaugeWeek = new JustGage({ id:"gaugeWeek", value:0, min:0, max:100, label:"%", levelColors:["#30B32D","#FFDD00","#F03E3E"], pointer:true });
+  gaugeMonth = new JustGage({ id:"gaugeMonth", value:0, min:0, max:100, label:"%", levelColors:["#30B32D","#FFDD00","#F03E3E"], pointer:true });
+  gaugeQuarter = new JustGage({ id:"gaugeQuarter", value:0, min:0, max:100, label:"%", levelColors:["#30B32D","#FFDD00","#F03E3E"], pointer:true });
+}
+
+// ===== Оновлення спідометра =====
+function updateGauge(id, value) {
+  if (id === "gaugeDay" && gaugeDay) gaugeDay.refresh(value);
+  if (id === "gaugeWeek" && gaugeWeek) gaugeWeek.refresh(value);
+  if (id === "gaugeMonth" && gaugeMonth) gaugeMonth.refresh(value);
+  if (id === "gaugeQuarter" && gaugeQuarter) gaugeQuarter.refresh(value);
+}
+
 // ===== Основна логіка =====
 function loadData(userKey) {
-  const specialty = $("#specialtyFilter").val();
-  const partner = $("#partnerSelect").val();
-  const product = $("#productSelect").val();
+  const specialty = $("#specialtyFilter").val(); // лише спеціальність
 
   const today = new Date();
 
-  // Поточні періоди
   const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // понеділок
+  startOfWeek.setDate(today.getDate() - today.getDay() + 1);
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
 
@@ -463,487 +485,108 @@ function loadData(userKey) {
   };
 
   let doctorVisits = loadCache("doctor");
-  let partnerVisits = loadCache("partner");
 
   for (const [key, period] of Object.entries(periods)) {
-    redrawGauges(key, doctorVisits, partnerVisits, specialty, partner, product, period);
+    redrawGauges(key, doctorVisits, specialty, period);
   }
 }
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
 
-// ===== Малювання спідометрів =====
-function redrawGauges(key, doctorVisits, partnerVisits, specialty, partner, product, period) {
-  // Фільтрація по даті (поточний період)
+function redrawGauges(key, doctorVisits, specialty, period) {
   doctorVisits = doctorVisits.filter(v => {
-  const d = parseDate(v.date);
-  return d >= period.start && d <= period.end;
-});
-partnerVisits = partnerVisits.filter(v => {
-  const d = parseDate(v.date);
-  return d >= period.start && d <= period.end;
-});
+    const d = parseDate(v.date);
+    if (!d) return false;
 
-  // Фільтрація по спеціальності/партнеру/продукту
-  if (specialty && specialty !== "Партнери") doctorVisits = doctorVisits.filter(v => v.specialty === specialty);
-  if (specialty === "Партнери") doctorVisits = [];
-  if (partner) partnerVisits = partnerVisits.filter(v => v.partnerName === partner);
-  if (product) {
-    doctorVisits = doctorVisits.filter(v => v.product === product);
-    partnerVisits = partnerVisits.filter(v => v.product === product);
+    if (key === "day") {
+      return isSameDay(d, period.start); // тільки дата, без часу
+    }
+    return d >= period.start && d <= period.end;
+  });
+
+  if (specialty && specialty !== "Всі спеціальності") {
+    doctorVisits = doctorVisits.filter(v => v.specialty === specialty);
   }
 
-  // Факт
-  let factTotal = 0;
-  if (specialty === "Партнери") factTotal = uniquePartnerVisits(partnerVisits);
-  else if (specialty) factTotal = uniqueDoctorVisits(doctorVisits);
-  else factTotal = uniqueDoctorVisits(doctorVisits) + uniquePartnerVisits(partnerVisits);
+  const factTotal = uniqueDoctorVisits(doctorVisits);
 
-  // План
   const days = countWorkingDays(period.start, period.end);
   let planTotal = 0;
   if (specialty === "Гастроентерологія") planTotal = planDay.gastro * days;
   else if (specialty === "Отоларингологія") planTotal = planDay.oto * days;
   else if (specialty === "Гінекологія") planTotal = planDay.gyn * days;
-  else if (specialty === "Партнери") planTotal = planDay.partner * days;
-  else planTotal = (planDay.gastro + planDay.oto + planDay.gyn + planDay.partner) * days;
+  else planTotal = (planDay.gastro + planDay.oto + planDay.gyn) * days;
 
-  const percent = (factTotal / planTotal) * 100;
+  const percent = planTotal > 0 ? (factTotal / planTotal) * 100 : 0;
   const gaugeId = "gauge" + key.charAt(0).toUpperCase() + key.slice(1);
-  drawGauge(gaugeId, percent || 0);
+
+  updateGauge(gaugeId, percent);
 
   const infoId = gaugeId + "Info";
-  document.getElementById(infoId).textContent = `Факт: ${factTotal} | План: ${planTotal} | ${percent.toFixed(1)}%`;
+  document.getElementById(infoId).textContent =
+    `Факт: ${factTotal} | План: ${planTotal} | ${percent.toFixed(1)}%`;
+
+  console.log("🔎", key, "Факт:", factTotal, "План:", planTotal);
+}
+
+
+// ===== Оновлення кешу і перемальовування =====
+async function refreshData(type, userKey) {
+  // тягнемо нові дані
+  await fetchIncremental(type, userKey);
+  // завжди малюємо з кешу (навіть якщо нових даних немає)
+  loadData(userKey);
 }
 
 // ===== Ініціалізація =====
 $(document).ready(function() {
+  // Select2
   $("#partnerSelect").select2({ placeholder:"Оберіть партнера", allowClear:true, width:'300px' });
   $("#productSelect").select2({ placeholder:"Оберіть продукт", allowClear:true, width:'300px' });
 
+  // Створюємо спідометри один раз
+  initGauges();
+
+  // Поточна дата
   const today = new Date().toISOString().split("T")[0];
   $("#startDate").val(today);
 
   // Малюємо одразу з кешу
-  loadData(currentUser, today);
+  loadData(currentUser);
 
-  // Оновлюємо кеш тільки при відкритті сторінки
-  fetchIncremental("doctor", currentUser).then(() => { loadData(currentUser, today); });
-  fetchIncremental("partner", currentUser).then(() => { loadData(currentUser, today); });
+  // Оновлюємо кеш і перемальовуємо
+  refreshData("doctor", currentUser);
+  refreshData("partner", currentUser);
 
-  // При зміні фільтрів — тільки перемальовуємо з кешу
+  // При зміні фільтрів — перемальовуємо з кешу
   $("#userFilter, #specialtyFilter, #partnerSelect, #productSelect, #startDate").on("change", function() {
-    const date = $("#startDate").val();
-    if (date) {
-      const userKey = (currentUser === "admin") ? $("#userFilter").val() : currentUser;
-      loadData(userKey, date);
-    }
+    const userKey = (currentUser === "admin") ? $("#userFilter").val() : currentUser;
+    loadData(userKey);
   });
 });
 
+// ===== Парсинг дати =====
 function parseDate(str) {
-  // очікуємо формат "DD.MM.YYYY"
-  const parts = str.split(".");
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // місяці з 0
-    const year = parseInt(parts[2], 10);
-    return new Date(year, month, day);
+  if (!str) return null;
+  if (str.includes(".")) {
+    const [day, month, year] = str.split(".");
+    return new Date(parseInt(year), parseInt(month)-1, parseInt(day));
   }
-  return new Date(str); // fallback для ISO
+  return new Date(str); // ISO формат
 }
-</Script>
-<script>
-  $(document).ready(function() {
-  $("#partnerSelect").select2({
-    placeholder: "Оберіть партнера",
-    allowClear: true,
-    width: '300px'
-  });
-  $("#partnerSelect").next(".select2-container").addClass("custom-select2");
+document.addEventListener("DOMContentLoaded", () => {
+  const today = new Date();
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  const formattedDate = today.toLocaleDateString('uk-UA', options);
 
-  $("#productSelect").select2({
-    placeholder: "Оберіть продукт",
-    allowClear: true,
-    width: '300px'
-  });
-  $("#productSelect").next(".select2-container").addClass("custom-select2");
+  const userName = userNames[currentUser] || currentUser;
+
+  document.getElementById("userInfoTop").textContent =
+    `${formattedDate} | ${userName}`;
 });
-
-// ===== Форматування чисел =====
-function formatThousands(num) {
-  return Number(num || 0).toLocaleString("uk-UA");
-}
-
-// ===== Анімація семисегментника =====
-function animateSevenSeg(targetValue, elementId, suffix="") {
-  const el = document.getElementById(elementId);
-  if (!el) return;
-  let current = 0;
-  const step = Math.max(1, Math.ceil(targetValue / 100)); // швидкість приросту
-  const interval = setInterval(() => {
-    current += step;
-    if (current >= targetValue) {
-      current = targetValue;
-      clearInterval(interval);
-    }
-    el.textContent = suffix
-      ? current.toFixed(1) + suffix
-      : formatThousands(current);
-  }, 20);
-}
-
-// ===== Оновлення одного блоку =====
-function updateSevenSegBlock(planRows, partners, quarter, mode, prefix) {
-  const planKey = `2026_${quarter.replace("Q","")}`;
-  let plan = 0, fact = 0;
-
-  if (mode === "green") {
-    // Загальний план користувача
-    planRows.forEach(row => { plan += row.planMoney?.[planKey] || 0; });
-    partners.forEach(p => {
-      const totalRow = p.products.find(prod => prod.product === "Всього");
-      if (totalRow) fact += totalRow.historyMoney?.[planKey] || 0;
-    });
-  }
-
-  if (mode === "blue") {
-    // По партнерах
-    const selectedPartnerIds = $("#partnerSelect").val() || [];
-  const planKey = `2026_${quarter.replace("Q","")}`;
-  let planBlue = 0, factBlue = 0;
-
-  partners.forEach(p => {
-    if (selectedPartnerIds.length > 0 && !selectedPartnerIds.includes(String(p.id))) return;
-    const totalRow = p.products.find(prod => prod.product === "Всього");
-    if (totalRow) {
-      planBlue += totalRow.planMoney || 0;
-      factBlue += totalRow.historyMoney?.[planKey] || 0;
-    }
-  });
-  }
-
-  if (mode === "red") {
-    // По продуктах
-    const selectedProducts = $("#productSelect").val() || [];
-    planRows.forEach(row => {
-      if (selectedProducts.length > 0 && !selectedProducts.includes(row.product)) return;
-      plan += row.planMoney?.[planKey] || 0;
-    });
-    partners.forEach(p => {
-      p.products.forEach(prod => {
-        if (selectedProducts.length > 0 && !selectedProducts.includes(prod.product)) return;
-        fact += prod.historyMoney?.[planKey] || 0;
-      });
-    });
-  }
-
-  // Анімація трьох полів: план, факт, %
-  animateSevenSeg(plan, prefix);
-  animateSevenSeg(fact, prefix+"1");
-  const percent = plan > 0 ? (fact / plan) * 100 : 0;
-  animateSevenSeg(percent, prefix+"2", "%");
-}
-
-// ===== Виклики для трьох блоків =====
-function updateAllSevenSeg(planRows, partners, quarter) {
-  updateSevenSegBlock(planRows, partners, quarter, "green", "moneyGreen");
-  updateSevenSegBlock(planRows, partners, quarter, "blue", "moneyBlue");
-  updateSevenSegBlock(planRows, partners, quarter, "red", "moneyRed");
-}
 </script>
-<script>
-// ===== Ініціалізація селектора партнерів =====
-async function initPartners(userKey) {
-  const morionUrl = "https://docs.google.com/spreadsheets/d/1CUEcXgBAUIKvg0k2JePbhSH-_S01HcEi";
-  const partners = await fetchPartners(morionUrl);
-
-  localStorage.setItem("partners", JSON.stringify(partners));
-
-  const ids = userMap[userKey] || [];
-  const filtered = partners.filter(p => ids.includes(p.id));
-
-  const partnerSelect = $("#partnerSelect");
-  partnerSelect.empty().append(`<option value="">Всі партнери</option>`);
-  filtered.forEach(p => {
-    partnerSelect.append(`<option value="${p.name}">${p.name}</option>`);
-  });
-
-  partnerSelect.select2({ placeholder: "Оберіть партнера", allowClear: true, width: "300px" });
-}
-
-// ===== Ініціалізація селектора продуктів =====
-async function initProducts(planRows) {
-  const productSelect = $("#productSelect");
-  productSelect.empty().append(`<option value="">Всі продукти</option>`);
-
-  planRows.forEach(row => {
-    productSelect.append(`<option value="${row.product}">${row.product}</option>`);
-  });
-
-  productSelect.select2({ placeholder: "Оберіть продукт", allowClear: true, width: "300px" });
-}
-
-// ===== Отримання партнерів із Google Sheets =====
-async function fetchPartners(morionUrl) {
-  const url = `${morionUrl}/gviz/tq?tqx=out:json&sheet=sheet1`;
-  const res = await fetch(url);
-  const text = await res.text();
-  const json = JSON.parse(text.substr(47).slice(0, -2));
-
-  return json.table.rows.map(r => {
-    const corpRaw = r.c[0]?.v || "";
-    const idMatch = corpRaw.match(/^(\d+)/);
-    const id = idMatch ? parseInt(idMatch[1], 10) : 0;
-    const name = corpRaw.replace(/^(\d+)\.\s*/, "");
-
-    return {
-      id,
-      name,
-      turnover: parseFloat(String(r.c[1]?.v || 0).replace(/\s|,/g, "")) || 0,
-      msr: parsePercent(r.c[2]?.v),
-      grossRate: parsePercent(r.c[3]?.v),
-      ei: parseFloat(String(r.c[4]?.v || 0).replace(/\s|,/g, "")) || 0,
-      tt: parseIntClean(r.c[5]?.v || 0)
-    };
-  }).filter(p => p.id && p.name && !p.name.includes("Rating"));
-}
-
-// ===== Отримання історії по партнеру =====
-async function fetchHistory(partnerId, historyUrl, partnerData) {
-  const partnerName = partnerData.find(p => p.id === partnerId)?.name || `Партнер ${partnerId}`;
-  const url = `${historyUrl}/gviz/tq?tqx=out:json&range='${partnerId}'!A1:Z1000`;
-  const res = await fetch(url);
-  const text = await res.text();
-  const json = JSON.parse(text.substr(47).slice(0, -2));
-
-  const cols = json.table.cols.map(c => c.label);
-  const rows = json.table.rows.map(r => r.c.map(c => c?.v || ""));
-
-  let products = [];
-  let mode = "money";
-  let firstProduct = null;
-  let seenFirstAgain = false;
-
-  rows.forEach(r => {
-    const product = r[2];
-    if (!product || product === "ТовардляПлана" || product === "Всього") return;
-
-    if (!firstProduct) {
-      firstProduct = product;
-    } else if (product === firstProduct && !seenFirstAgain) {
-      mode = "packs";
-      seenFirstAgain = true;
-    }
-
-    let prod = products.find(p => p.product === product);
-    if (!prod) {
-      prod = { partnerId, partnerName, product, historyMoney: {}, historyPacks: {} };
-      products.push(prod);
-    }
-
-    cols.forEach((col, idx) => {
-      if (/^202[56]_\d$/.test(col)) {
-        const val = Math.round(parseNum(r[idx]));
-        if (mode === "money") prod.historyMoney[col] = val;
-        else prod.historyPacks[col] = val;
-      }
-    });
-  });
-
-  return products;
-}
-// ===== URL для історії кожного користувача =====
-const historyUrlOleksandr = "https://docs.google.com/spreadsheets/d/1OhWc6BKpVML_dnxDVTvLsr6GyRfM27BZ";
-const historyUrlTetiana   = "https://docs.google.com/spreadsheets/d/1EeL08aCAa5PCwIYAtN49hQQibp5otMEm";
-const historyUrlOffice    = "https://docs.google.com/spreadsheets/d/1ju1NDfqXREsb56FuYlVTv8kei4eL5rhW";
-const historyUrlAndriy    = "https://docs.google.com/spreadsheets/d/1AAAAAAAAAAAAAAAAAAAA"; 
-const historyUrlMaria     = "https://docs.google.com/spreadsheets/d/1BBBBBBBBBBBBBBBBBBBB"; 
-const historyUrlSerhiy    = "https://docs.google.com/spreadsheets/d/1CCCCCCCCCCCCCCCCCCCC"; 
-
-// ===== Отримання планів =====
-async function fetchPlan(planUrl) {
-  const url = `${planUrl}/gviz/tq?tqx=out:json&sheet=sheet1`;
-  const res = await fetch(url);
-  const text = await res.text();
-  const json = JSON.parse(text.substr(47).slice(0, -2));
-
-  const rows = json.table.rows.map(r => r.c.map(c => c?.v || ""));
-
-  return rows.map(r => {
-    const product = r[0];
-    if (!product) return null;
-    return {
-      product,
-      planMoney: {
-        "2026_1": parseFloat(r[1]) || 0,
-        "2026_2": parseFloat(r[2]) || 0,
-        "2026_3": parseFloat(r[3]) || 0,
-        "2026_4": parseFloat(r[4]) || 0
-      },
-      planPacks: {
-        "2026_1": parseFloat(r[5]) || 0,
-        "2026_2": parseFloat(r[6]) || 0,
-        "2026_3": parseFloat(r[7]) || 0,
-        "2026_4": parseFloat(r[8]) || 0
-      }
-    };
-  }).filter(Boolean);
-}
-// ===== 2. Константи з URL‑ами =====
-const planUrlOleksandr = "https://docs.google.com/spreadsheets/d/1TtDl9d1rxAl7mCwlW7N6plVhxZYAVEk8";
-const planUrlTetiana   = "https://docs.google.com/spreadsheets/d/1IKqln_4KSXwcTiikO48E6j3XywHoebhI";
-const planUrlOffice    = "https://docs.google.com/spreadsheets/d/1URsMjWRwYmyy7aHtQ5EqmvD6Yct-rNmf";
-const planUrlAndriy    = "https://docs.google.com/spreadsheets/d/1AAAAAAAAAAAAAAAAAAAA";
-const planUrlMaria     = "https://docs.google.com/spreadsheets/d/1BBBBBBBBBBBBBBBBBBBB";
-const planUrlSerhiy    = "https://docs.google.com/spreadsheets/d/1CCCCCCCCCCCCCCCCCCCC";
-// ===== Допоміжні парсери =====
-function parseNum(v) {
-  if (v === null || v === "" || v === undefined) return 0;
-  const num = parseFloat(String(v).replace(/\s/g, ""));
-  return isNaN(num) ? 0 : num;
-}
-
-function parsePercent(raw) {
-  if (!raw) return 0;
-  let s = String(raw).trim().replace(/[\s\u00A0,]/g, "").replace("%", "");
-  let v = parseFloat(s);
-  if (isNaN(v)) return 0;
-  return v;
-}
-
-function parseIntClean(raw) {
-  if (!raw) return 0;
-  const s = String(raw).replace(/[^\d-]/g, "");
-  const v = parseInt(s, 10);
-  return isNaN(v) ? 0 : v;
-}
-
-// ===== Вибір URL за користувачем =====
-async function getPlans(userKey) {
-  switch (userKey) {
-    case "fedir":  return await fetchPlan(planUrlOleksandr);
-    case "olena":  return await fetchPlan(planUrlTetiana);
-    case "office": return await fetchPlan(planUrlOffice);
-    case "andriy": return await fetchPlan(planUrlAndriy);
-    case "maria":  return await fetchPlan(planUrlMaria);
-    case "serhiy": return await fetchPlan(planUrlSerhiy);
-    default:
-      console.warn("Невідомий користувач, використовую загальний план");
-      return await fetchPlan(planUrlOffice);
-  }
-}
-function getHistoryUrl(userKey) {
-  switch (userKey) {
-    case "fedir":  return historyUrlOleksandr;
-    case "olena":  return historyUrlTetiana;
-    case "office": return historyUrlOffice;
-    case "andriy": return historyUrlAndriy;
-    case "maria":  return historyUrlMaria;
-    case "serhiy": return historyUrlSerhiy;
-    default:
-      console.warn("Невідомий користувач, використовую загальний URL історії");
-      return historyUrlOffice;
-  }
-}
-// ===== Розподіл планів між партнерами =====
-function distributePlanForPartners(plans, partners, quarter) {
-  const keyPrev = `2025_${quarter.replace("Q","")}`;
-  const keyCurr = `2026_${quarter.replace("Q","")}`;
-
-  plans.forEach(plan => {
-    const totalMoney = plan.planMoney[keyCurr] || 0;
-    const totalPacks = plan.planPacks[keyCurr] || 0;
-
-    let shares = partners.map(p => {
-      const prod = p.products.find(pr => pr.product === plan.product);
-      const historyPacks = prod ? (prod.historyPacks?.[keyPrev] || 0) : 0;
-      const baseShare = totalPacks * (p.msr / 100);
-
-      let share;
-      const allHistoryZero = partners.every(x => {
-        const h = x.products.find(pr => pr.product === plan.product)?.historyPacks?.[keyPrev] || 0;
-        return h === 0;
-      });
-
-      if (allHistoryZero) {
-        share = baseShare;
-      } else if (historyPacks > baseShare) {
-        share = historyPacks;
-      } else {
-        share = (historyPacks * p.ei) / 100;
-      }
-
-      return { partner: p, share, historyPacks };
-    });
-
-    // Масштабування суми
-    let sumShares = shares.reduce((s, x) => s + x.share, 0);
-    if (sumShares > 0) {
-      shares.forEach(x => {
-        x.share = x.share * (totalPacks / sumShares);
-      });
-    }
-
-    // Запис у продукти
-    shares.forEach(x => {
-      const planPacks = Math.round(x.share);
-      const prod = x.partner.products.find(pr => pr.product === plan.product);
-      if (prod) {
-        const execPacks = prod.historyPacks?.[keyCurr] || 0;
-        const pricePerPack = totalPacks > 0 ? (totalMoney / totalPacks) : 0;
-        const planMoney = planPacks * pricePerPack;
-        const execMoney = prod.historyMoney?.[keyCurr] || 0;
-
-        prod.planPacks = planPacks;
-        prod.execPacks = execPacks;
-        prod.planMoney = Math.round(planMoney);
-        prod.execMoney = execMoney;
-        prod.toSellPacks = Math.max(planPacks - execPacks, 0);
-        prod.toSellMoney = Math.max(planMoney - execMoney, 0);
-
-        prod.percentExecPacks = planPacks > 0 ? ((execPacks / planPacks) * 100).toFixed(2) + "%" : "0.00%";
-        prod.percentExecMoney = planMoney > 0 ? ((execMoney / planMoney) * 100).toFixed(2) + "%" : "0.00%";
-      }
-    });
-  });
-
-  return partners;
-}
-
-
-
-///__===== Головна ініціалізація =====
-document.addEventListener("DOMContentLoaded", async () => {
-  const userKey = localStorage.getItem("currentUser");
-  const quarter = "Q2";
-
-  // отримуємо плани
-  const plans = await getPlans(userKey);
-
-  // ініціалізація селекторів
-  await initPartners(userKey);
-  await initProducts(plans);
-
-  // підтягування історії
-  const historyUrl = getHistoryUrl(userKey);
-  const ids = userMap[userKey] || [];
-  let allPartners = [];
-  for (let id of ids) {
-    const products = await fetchHistory(id, historyUrl, JSON.parse(localStorage.getItem("partners")) || []);
-    const d = (JSON.parse(localStorage.getItem("partners")) || []).find(p => p.id === id);
-    if (!d) continue;
-    allPartners.push({ ...d, products });
-  }
-
-  // розподіл планів
-  distributePlanForPartners(plans, allPartners, quarter);
-
-  // оновлення семисегментників
-  updateAllSevenSeg(plans, allPartners, quarter);
-});
-
-
-</script>
-
 </body>
 </html>
-
