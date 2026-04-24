@@ -3,15 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <title>Маршрут користувача</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/jpg" href="bol.jpg">
   <style>
     #map { height: 600px; width: 100%; }
     #controls { margin: 10px; }
+      body {
+  font-family: Arial, sans-serif;
+  margin: 0; padding: 0;
+  background: linear-gradient(135deg, #009400, #004d00);
+  color: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+label {
+  display: block; 
+  margin: 10px auto 5px auto; 
+  font-weight: bold;
+  width: 500px; 
+  text-align: left;
+}
+
+input, select {
+  width: 500px; 
+  padding: 10px; 
+  margin: 5px auto 15px auto;
+  border: none; 
+  border-radius: 6px; 
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+button {
+  width: 200px; 
+  padding: 12px; 
+  margin: 10px 15px;
+  background-color: #004d00; 
+  color: #ffffff;
+  border: solid 1px #c2ffc2; 
+  border-radius: 6px; 
+  font-size: 1rem;
+  cursor: pointer; 
+  transition: background 0.3s ease;
+}
+
+h3 { 
+  margin-top: 30px; 
+  text-align: center; 
+}
+
+button:hover { 
+  background-color: #003300; 
+}
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 600px;
+}
+/* 📱 Телефони (до 480px) */
+@media screen and (max-width: 480px) {
+  label, input, select {
+    width: 90%; /* майже вся ширина екрану */
+    font-size: 0.9rem;
+  }
+  button {
+    width: 80%;
+    font-size: 0.9rem;
+  }
+}
+
+/* 📲 Планшети (481px–768px) */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  label, input, select {
+    width: 80%;
+    font-size: 1rem;
+  }
+  button {
+    width: 60%;
+    font-size: 1rem;
+  }
+}
+
+/* 💻 Десктопи (769px і більше) */
+@media screen and (min-width: 769px) {
+  label, input, select {
+    width: 500px;
+  }
+  button {
+    width: 200px;
+  }
+}
   </style>
 </head>
 <body>
   <h2>Маршрут користувача</h2>
-  <div id="controls">
-    <label for="userSelect">Користувач:</label>
+  <br>
+  <img src="./logo.svg" alt="logo" width="260">
+  <div class="controls" id="controls">
+    <label for="userSelect">Користувач:
     <select id="userSelect">
       <option value="">Виберіть користувача</option>
       <option value="fedir">Олександр Красніков</option>
@@ -21,110 +117,153 @@
       <option value="maria">Тетяна Демус</option>
       <option value="serhiy">Ілона Бабенко</option>
     </select>
-
-    <label for="startDate">Початок:</label>
+    </label>
+    <label for="startDate">Початок:
     <input type="date" id="startDate">
-
-    <label for="endDate">Кінець:</label>
+</label>
+    <label for="endDate">Кінець:
     <input type="date" id="endDate">
-
+</label>
     <button onclick="showVisits()">Показати</button>
   </div>
   <div id="map"></div>
+  <!-- блок для таблиці -->
+  <div id="report" style="margin-top:20px;"></div>
+ <img src="./ph.png" alt="logo" width="260">
+ <script>
+   let map; // глобальна змінна для карти
+ 
+  async function loadVisits(type, userName, startDate, endDate) {
+    let url = `https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=${type}&userName=${encodeURIComponent(userName)}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
 
-  <script>
-    let map; // глобальна змінна для карти
+    const response = await fetch(url);
+    const visits = await response.json();
+    return visits.filter(v => v.lat && v.lon);
+  }
 
-    async function loadVisits(type, userName, startDate, endDate) {
-      let url = `https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec?type=${type}&userName=${encodeURIComponent(userName)}`;
-      if (startDate) url += `&startDate=${startDate}`;
-      if (endDate) url += `&endDate=${endDate}`;
+  function initMap() {
+    map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 6,
+      center: { lat: 50.45, lng: 30.52 } // Київ
+    });
+  }
 
-      const response = await fetch(url);
-      const visits = await response.json();
-      return visits.filter(v => v.lat && v.lon);
+  async function showVisits() {
+    const userName = document.getElementById("userSelect").value;
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+
+    const [pharmacyVisits, doctorVisits, partnerVisits] = await Promise.all([
+      loadVisits("pharmacy", userName, startDate, endDate),
+      loadVisits("doctor", userName, startDate, endDate),
+      loadVisits("partner", userName, startDate, endDate)
+    ]);
+
+    let allVisits = [...pharmacyVisits, ...doctorVisits, ...partnerVisits];
+    if (allVisits.length === 0) {
+      alert("Немає координат для цього користувача у вибраному періоді.");
+      return;
     }
 
-    // ініціалізація карти при завантаженні сторінки
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 6,
-        center: { lat: 50.45, lng: 30.52 } // Київ
+    allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
+
+    const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
+    map.setCenter(center);
+    map.setZoom(8);
+
+    // очищаємо таблицю перед новим звітом
+    const reportDiv = document.getElementById("report");
+    reportDiv.innerHTML = "";
+
+    // створюємо таблицю
+    const table = document.createElement("table");
+    table.border = "1";
+    const header = table.insertRow();
+    ["Користувач","Дата","Час","Заклад","Відстань (м)"].forEach(h => {
+      const cell = header.insertCell();
+      cell.innerHTML = `<strong>${h}</strong>`;
+    });
+
+    allVisits.forEach((v, index) => {
+      const visitPos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
+      const placePos = (v.placeLat && v.placeLon) ? { lat: parseFloat(v.placeLat), lng: parseFloat(v.placeLon) } : null;
+
+      let color = "gray";
+      if (v.doctor) color = "blue";
+      else if (v.product) color = "yellow";
+      else color = "green";
+
+      let label = "";
+      if (index === 0) label = "Старт";
+      else if (index === allVisits.length - 1) label = "Фініш";
+
+      const visitMarker = new google.maps.marker.AdvancedMarkerElement({
+        position: visitPos,
+        map: map,
+        title: `${v.date} ${v.time}`,
+        content: (() => {
+          const div = document.createElement("div");
+          div.style.backgroundColor = color;
+          div.style.border = "1px solid black";
+          div.style.borderRadius = "50%";
+          div.style.width = "12px";
+          div.style.height = "12px";
+          div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
+          return div;
+        })()
       });
-    }
 
-    // показ візитів після натискання кнопки
-    async function showVisits() {
-      const userName = document.getElementById("userSelect").value;
-      const startDate = document.getElementById("startDate").value;
-      const endDate = document.getElementById("endDate").value;
-
-      const [pharmacyVisits, doctorVisits, partnerVisits] = await Promise.all([
-        loadVisits("pharmacy", userName, startDate, endDate),
-        loadVisits("doctor", userName, startDate, endDate),
-        loadVisits("partner", userName, startDate, endDate)
-      ]);
-
-      let allVisits = [...pharmacyVisits, ...doctorVisits, ...partnerVisits];
-      if (allVisits.length === 0) {
-        alert("Немає координат для цього користувача у вибраному періоді.");
-        return;
+      if (v.distance) {
+        const visitInfo = new google.maps.InfoWindow({
+          content: `<div>Відстань: ${v.distance} м<br>Час: ${v.time}</div>`
+        });
+        visitMarker.addListener("click", () => {
+          visitInfo.open(map, visitMarker);
+        });
       }
 
-      // сортуємо за датою+часом
-      allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
-
-      const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
-      map.setCenter(center);
-      map.setZoom(8);
-
-      const pathCoords = [];
-
-      allVisits.forEach((v, index) => {
-        const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
-        pathCoords.push(pos);
-
-        let color = "gray";
-        if (v.doctor) color = "blue";
-        else if (v.product) color = "yellow";
-        else color = "green";
-
-        let label = "";
-        if (index === 0) label = "Старт";
-        else if (index === allVisits.length - 1) label = "Фініш";
-
-        new google.maps.marker.AdvancedMarkerElement({
-          position: pos,
+      if (placePos) {
+        const placeMarker = new google.maps.marker.AdvancedMarkerElement({
+          position: placePos,
           map: map,
-          title: `${v.date} ${v.time}`,
-          content: (() => {
-            const div = document.createElement("div");
-            div.style.backgroundColor = color;
-            div.style.border = "1px solid black";
-            div.style.borderRadius = "50%";
-            div.style.width = "12px";
-            div.style.height = "12px";
-            div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
-            return div;
-          })()
+          title: v.partnerName || v.lpz || "Заклад"
         });
-      });
 
-      // малюємо одну лінію маршруту
-      const routePath = new google.maps.Polyline({
-        path: pathCoords,
-        geodesic: true,
-        strokeColor: "#FF0000",
-        strokeOpacity: 1.0,
-        strokeWeight: 2
-      });
-      routePath.setMap(map);
-    }
-  </script>
+        const placeInfo = new google.maps.InfoWindow({
+          content: `<div><strong>${v.partnerName || v.lpz || "Заклад"}</strong></div>`
+        });
+        placeMarker.addListener("click", () => {
+          placeInfo.open(map, placeMarker);
+        });
 
-  <!-- правильне підключення API -->
-  <script async
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBD4TgSt-d1P91zLI7dmURnc2iuoH6mAT8&callback=initMap&libraries=marker">
-  </script>
+        new google.maps.Polyline({
+          path: [visitPos, placePos],
+          geodesic: true,
+          strokeColor: "#FF0000",
+          strokeOpacity: 1.0,
+          strokeWeight: 2,
+          map: map
+        });
+      }
+
+      // додаємо рядок у таблицю
+      const row = table.insertRow();
+      row.insertCell().innerText = v.userName;
+      row.insertCell().innerText = v.date;
+      row.insertCell().innerText = v.time;
+      row.insertCell().innerText = v.partnerName || v.lpz || v.address || "";
+      row.insertCell().innerText = v.distance || "";
+    });
+
+    reportDiv.appendChild(table);
+  }
+</script>
+
+<!-- правильне підключення API -->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap&libraries=marker">
+</script>
 </body>
 </html>

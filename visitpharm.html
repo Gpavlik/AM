@@ -189,7 +189,7 @@ td.to-sell { text-align: center; font-weight: bold; color: white; }
   <label>Коментар:</label>
   <input type="text" id="pharmacyComment">
  
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -464,7 +464,7 @@ function savePharmacyVisit() {
 
     console.log("▶ Відправка візиту з координатами:", data);
 
-    fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(data),
@@ -485,7 +485,7 @@ function savePharmacyVisit() {
     alert("Не вдалося отримати координати, візит буде збережено без них.");
 
     // fallback: відправка без координат
-    fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify(data),
@@ -573,7 +573,7 @@ async function sendPhoto(photoBase64) {
   }
 
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
       method: "POST",
       mode: "no-cors", // залишаємо, як ти просив
       body: formData

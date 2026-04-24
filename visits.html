@@ -527,7 +527,7 @@ document.getElementById("sendReport").addEventListener("click", async () => {
 
     try {
       // Відправка короткої інформації
-      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(shortData),
@@ -535,7 +535,7 @@ document.getElementById("sendReport").addEventListener("click", async () => {
       });
 
       // Відправка детальної інформації
-      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({
@@ -564,14 +564,14 @@ document.getElementById("sendReport").addEventListener("click", async () => {
 
     try {
       // Відправка без координат
-      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(shortData),
         headers: { "Content-Type": "application/json" }
       });
 
-      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({

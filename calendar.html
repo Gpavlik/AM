@@ -592,7 +592,7 @@ async function updateStatusInBackend(event, newStatus) {
   }
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -676,7 +676,7 @@ async function updateDateInBackend(event, newDate, newTime) {
   if (el) styleEvent({ event: event, el: el });
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -747,7 +747,7 @@ async function addVisit() {
   localStorage.setItem("visits", JSON.stringify(visits));
 
  // бекенд
-await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
   method: "POST",
   mode: "no-cors",
   headers: { "Content-Type": "application/json" },
@@ -778,7 +778,7 @@ async function loadVisits() {
     renderVisits(localVisits);
 
     // тягнемо бекенд
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec?type=calendar");
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=calendar");
     const backendVisits = await res.json();
 
     const myVisits = backendVisits.filter(v => v.userName === currentUserName);
