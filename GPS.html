@@ -73,27 +73,33 @@
       const pathCoords = [];
 
       allVisits.forEach((v, index) => {
-        const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
-        pathCoords.push(pos);
+  const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
 
-        // колір піну залежно від типу
-        let color = "gray";
-        if (v.doctor) color = "blue";          // лікарські
-        else if (v.product) color = "yellow";  // аптечні
-        else color = "green";                  // партнерські
+  let color = "gray";
+  if (v.doctor) color = "blue";
+  else if (v.product) color = "yellow";
+  else color = "green";
 
-        let label = "";
-        if (index === 0) label = "Старт";
-        else if (index === allVisits.length - 1) label = "Фініш";
+  let label = "";
+  if (index === 0) label = "Старт";
+  else if (index === allVisits.length - 1) label = "Фініш";
 
-        new google.maps.Marker({
-          position: pos,
-          map: map,
-          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 6, fillColor: color, fillOpacity: 1, strokeColor: "black", strokeWeight: 1 },
-          label: label ? { text: label, color: "black", fontWeight: "bold" } : null,
-          title: `${v.date} ${v.time}` // 🕒 показуємо час над піном
-        });
-      });
+  new google.maps.marker.AdvancedMarkerElement({
+    position: pos,
+    map: map,
+    title: `${v.date} ${v.time}`,
+    content: (() => {
+      const div = document.createElement("div");
+      div.style.backgroundColor = color;
+      div.style.border = "1px solid black";
+      div.style.borderRadius = "50%";
+      div.style.width = "12px";
+      div.style.height = "12px";
+      div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
+      return div;
+    })()
+  });
+});
 
       // малюємо одну лінію маршруту
       const routePath = new google.maps.Polyline({
@@ -105,22 +111,10 @@
       });
       routePath.setMap(map);
     }
-    function initMap() {
-    const center = { lat: 50.45, lng: 30.52 }; // Київ
-    const map = new google.maps.Map(document.getElementById("map"), {
-      zoom: 10,
-      center: center
-    });
-
-    new google.maps.Marker({
-      position: center,
-      map: map,
-      title: "Центр Києва"
-    });
-  }
+    
   </script>
   <script async
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBD4TgSt-d1P91zLI7dmURnc2iuoH6mAT8&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBD4TgSt-d1P91zLI7dmURnc2iuoH6mAT8&callback=initMap&libraries=marker">
 </script>
 </body>
 </html>
