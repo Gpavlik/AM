@@ -7,7 +7,6 @@
     #map { height: 600px; width: 100%; }
     #controls { margin: 10px; }
   </style>
- 
 </head>
 <body>
   <h2>Маршрут користувача</h2>
@@ -17,7 +16,7 @@
       <option value="">Виберіть користувача</option>
       <option value="fedir">Олександр Красніков</option>
       <option value="olena">Тетяна Романовська</option>
-      <option value="office">Офіс </option>
+      <option value="office">Офіс</option>
       <option value="andriy">Тетяна Кліменко</option>
       <option value="maria">Тетяна Демус</option>
       <option value="serhiy">Ілона Бабенко</option>
@@ -29,11 +28,13 @@
     <label for="endDate">Кінець:</label>
     <input type="date" id="endDate">
 
-    <button onclick="initMap()">Показати</button>
+    <button onclick="showVisits()">Показати</button>
   </div>
-  <div id="map" style="height:500px; width:100%;"></div>
+  <div id="map"></div>
 
   <script>
+    let map; // глобальна змінна для карти
+
     async function loadVisits(type, userName, startDate, endDate) {
       let url = `https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec?type=${type}&userName=${encodeURIComponent(userName)}`;
       if (startDate) url += `&startDate=${startDate}`;
@@ -44,7 +45,16 @@
       return visits.filter(v => v.lat && v.lon);
     }
 
-    async function initMap() {
+    // ініціалізація карти при завантаженні сторінки
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 6,
+        center: { lat: 50.45, lng: 30.52 } // Київ
+      });
+    }
+
+    // показ візитів після натискання кнопки
+    async function showVisits() {
       const userName = document.getElementById("userSelect").value;
       const startDate = document.getElementById("startDate").value;
       const endDate = document.getElementById("endDate").value;
@@ -65,56 +75,56 @@
       allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
 
       const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
-      const map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 8,
-        center: center
-      });
+      map.setCenter(center);
+      map.setZoom(8);
 
       const pathCoords = [];
 
       allVisits.forEach((v, index) => {
-  const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
+        const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
+        pathCoords.push(pos);
 
-  let color = "gray";
-  if (v.doctor) color = "blue";
-  else if (v.product) color = "yellow";
-  else color = "green";
+        let color = "gray";
+        if (v.doctor) color = "blue";
+        else if (v.product) color = "yellow";
+        else color = "green";
 
-  let label = "";
-  if (index === 0) label = "Старт";
-  else if (index === allVisits.length - 1) label = "Фініш";
+        let label = "";
+        if (index === 0) label = "Старт";
+        else if (index === allVisits.length - 1) label = "Фініш";
 
-  new google.maps.marker.AdvancedMarkerElement({
-    position: pos,
-    map: map,
-    title: `${v.date} ${v.time}`,
-    content: (() => {
-      const div = document.createElement("div");
-      div.style.backgroundColor = color;
-      div.style.border = "1px solid black";
-      div.style.borderRadius = "50%";
-      div.style.width = "12px";
-      div.style.height = "12px";
-      div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
-      return div;
-    })()
-  });
-});
+        new google.maps.marker.AdvancedMarkerElement({
+          position: pos,
+          map: map,
+          title: `${v.date} ${v.time}`,
+          content: (() => {
+            const div = document.createElement("div");
+            div.style.backgroundColor = color;
+            div.style.border = "1px solid black";
+            div.style.borderRadius = "50%";
+            div.style.width = "12px";
+            div.style.height = "12px";
+            div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
+            return div;
+          })()
+        });
+      });
 
       // малюємо одну лінію маршруту
       const routePath = new google.maps.Polyline({
         path: pathCoords,
         geodesic: true,
-        strokeColor: "#FF0000", // червона лінія
+        strokeColor: "#FF0000",
         strokeOpacity: 1.0,
         strokeWeight: 2
       });
       routePath.setMap(map);
     }
-    
   </script>
+
+  <!-- правильне підключення API -->
   <script async
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBD4TgSt-d1P91zLI7dmURnc2iuoH6mAT8&callback=initMap&libraries=marker">
-</script>
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBD4TgSt-d1P91zLI7dmURnc2iuoH6mAT8&callback=initMap&libraries=marker">
+  </script>
 </body>
 </html>
