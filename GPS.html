@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Маршрут користувача</title>
+  <style>
+    #map { height: 600px; width: 100%; }
+    #controls { margin: 10px; }
+  </style>
+ 
+</head>
+<body>
+  <h2>Маршрут користувача</h2>
+  <div id="controls">
+    <label for="userSelect">Користувач:</label>
+    <select id="userSelect">
+      <option value="">Виберіть користувача</option>
+      <option value="fedir">Олександр Красніков</option>
+      <option value="olena">Тетяна Романовська</option>
+      <option value="office">Офіс </option>
+      <option value="andriy">Тетяна Кліменко</option>
+      <option value="maria">Тетяна Демус</option>
+      <option value="serhiy">Ілона Бабенко</option>
+    </select>
+
+    <label for="startDate">Початок:</label>
+    <input type="date" id="startDate">
+
+    <label for="endDate">Кінець:</label>
+    <input type="date" id="endDate">
+
+    <button onclick="initMap()">Показати</button>
+  </div>
+  <div id="map" style="height:500px; width:100%;"></div>
+
+  <script>
+    async function loadVisits(type, userName, startDate, endDate) {
+      let url = `https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec?type=${type}&userName=${encodeURIComponent(userName)}`;
+      if (startDate) url += `&startDate=${startDate}`;
+      if (endDate) url += `&endDate=${endDate}`;
+
+      const response = await fetch(url);
+      const visits = await response.json();
+      return visits.filter(v => v.lat && v.lon);
+    }
+
+    async function initMap() {
+      const userName = document.getElementById("userSelect").value;
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+
+      const [pharmacyVisits, doctorVisits, partnerVisits] = await Promise.all([
+        loadVisits("pharmacy", userName, startDate, endDate),
+        loadVisits("doctor", userName, startDate, endDate),
+        loadVisits("partner", userName, startDate, endDate)
+      ]);
+
+      let allVisits = [...pharmacyVisits, ...doctorVisits, ...partnerVisits];
+      if (allVisits.length === 0) {
+        alert("Немає координат для цього користувача у вибраному періоді.");
+        return;
+      }
+
+      // сортуємо за датою+часом
+      allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
+
+      const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 8,
+        center: center
+      });
+
+      const pathCoords = [];
+
+      allVisits.forEach((v, index) => {
+        const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
+        pathCoords.push(pos);
+
+        // колір піну залежно від типу
+        let color = "gray";
+        if (v.doctor) color = "blue";          // лікарські
+        else if (v.product) color = "yellow";  // аптечні
+        else color = "green";                  // партнерські
+
+        let label = "";
+        if (index === 0) label = "Старт";
+        else if (index === allVisits.length - 1) label = "Фініш";
+
+        new google.maps.Marker({
+          position: pos,
+          map: map,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 6, fillColor: color, fillOpacity: 1, strokeColor: "black", strokeWeight: 1 },
+          label: label ? { text: label, color: "black", fontWeight: "bold" } : null,
+          title: `${v.date} ${v.time}` // 🕒 показуємо час над піном
+        });
+      });
+
+      // малюємо одну лінію маршруту
+      const routePath = new google.maps.Polyline({
+        path: pathCoords,
+        geodesic: true,
+        strokeColor: "#FF0000", // червона лінія
+        strokeOpacity: 1.0,
+        strokeWeight: 2
+      });
+      routePath.setMap(map);
+    }
+    function initMap() {
+    const center = { lat: 50.45, lng: 30.52 }; // Київ
+    const map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 10,
+      center: center
+    });
+
+    new google.maps.Marker({
+      position: center,
+      map: map,
+      title: "Центр Києва"
+    });
+  }
+  </script>
+  <script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBD4TgSt-d1P91zLI7dmURnc2iuoH6mAT8&callback=initMap">
+</script>
+</body>
+</html>

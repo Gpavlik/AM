@@ -333,6 +333,7 @@ input, select {
   <button onclick="goTo('calculator.html')">Калькулятори</button>
   <button onclick="goTo('reports.html')">Звіти</button>
   <button onclick="goTo('calendar.html')">Календар</button>
+  <button id="reportMenuItem" style="display:none;" onclick="goTo('GPS.html')">GPS</button>
   <button class="btn" onclick="goTo('index.html')">Вийти</button>
   </div>
 </div><br><br>
@@ -417,6 +418,16 @@ input, select {
 }
 </script>
 <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const currentUser = localStorage.getItem("currentUser");
+
+    // показуємо кнопку лише адміну
+    if (currentUser === "admin") {
+      document.getElementById("reportMenuItem").style.display = "block";
+    }
+  });
+</script>
+<script>
 // ===== Користувачі =====
 const userNames = {
   fedir: "Олександр Красніков",
@@ -448,7 +459,7 @@ function loadLastRow(type) {
 
 async function fetchIncremental(type, userKey) {
   const lastRow = loadLastRow(type);
-  const url = `https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec?type=${type}&userName=${userNames[userKey]}&lastRow=${lastRow}`;
+  const url = `https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec?type=${type}&userName=${userNames[userKey]}&lastRow=${lastRow}`;
   console.log(`🔗 Інкрементальний запит: ${url}`);
 
   try {

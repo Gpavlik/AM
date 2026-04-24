@@ -189,7 +189,7 @@ td.to-sell { text-align: center; font-weight: bold; color: white; }
   <label>Коментар:</label>
   <input type="text" id="pharmacyComment">
  
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -431,53 +431,66 @@ function savePharmacyVisit() {
   });
 
   const urlParams = new URLSearchParams(window.location.search);
-let userName = urlParams.get("userName") || localStorage.getItem("currentUserName");
+  let userName = urlParams.get("userName") || localStorage.getItem("currentUserName");
 
-// якщо userName порожній, беремо з userNames[currentUser]
-if (!userName) {
-  const currentUser = localStorage.getItem("currentUser");
-  userName = userNames[currentUser] || currentUser;
-}
-
+  if (!userName) {
+    const currentUser = localStorage.getItem("currentUser");
+    userName = userNames[currentUser] || currentUser;
+  }
 
   const data = {
-  action: "savePharmacyVisit",
-  userName: userName,
-  date: document.getElementById("visitDate").value,
-  time: document.getElementById("visitTime").value,
-  partnerId: document.getElementById("partnerSelect").value,
-  partnerName: document.getElementById("partnerSelect").options[
-    document.getElementById("partnerSelect").selectedIndex
-  ].text,
-  city: document.getElementById("city").value,
-  address: document.getElementById("pharmacyAddress").value,
-  contactName: document.getElementById("contactName").value,
-  contactPhone: document.getElementById("contactPhone").value,
-  display: document.getElementById("pharmacyDisplay").checked,
-  awareness: document.getElementById("pharmacyAwareness").value,
-  comment: document.getElementById("pharmacyComment").value,
-  products: productsData
-};
+    action: "savePharmacyVisit",
+    userName: userName,
+    date: document.getElementById("visitDate").value,
+    time: document.getElementById("visitTime").value,
+    partnerId: document.getElementById("partnerSelect").value,
+    partnerName: document.getElementById("partnerSelect").options[
+      document.getElementById("partnerSelect").selectedIndex
+    ].text,
+    city: document.getElementById("city").value,
+    address: document.getElementById("pharmacyAddress").value,
+    contactName: document.getElementById("contactName").value,
+    contactPhone: document.getElementById("contactPhone").value,
+    display: document.getElementById("pharmacyDisplay").checked,
+    awareness: document.getElementById("pharmacyAwareness").value,
+    comment: document.getElementById("pharmacyComment").value,
+    products: productsData
+  };
 
+  // 🔎 Отримуємо координати перед відправкою
+  navigator.geolocation.getCurrentPosition(pos => {
+    data.lat = pos.coords.latitude;
+    data.lon = pos.coords.longitude;
 
-  console.log("▶ Відправка візиту:", data);
+    console.log("▶ Відправка візиту з координатами:", data);
 
-  fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify(data),
-    headers: { "Content-Type": "application/json" }
-  })
-  .then(res => res.text())
-  .then(txt => {
+    fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" }
+    })
+    .then(res => res.text())
+    .then(txt => {
+      console.log("▶ Відповідь від скрипта:", txt);
+      alert("Візит збережено у phvisits!");
+      location.reload();
+    })
+    .catch(err => {
+      console.error("Помилка збереження:", err);
+      alert("Не вдалося зберегти візит");
+    });
+  }, err => {
+    console.error("❌ Помилка GPS:", err);
+    alert("Не вдалося отримати координати, візит буде збережено без них.");
 
-    console.log("▶ Відповідь від скрипта:", txt);
-    alert("Візит збережено у phvisits!");
-    location.reload();
-  })
-  .catch(err => {
-    console.error("Помилка збереження:", err);
-    alert("Не вдалося зберегти візит");
+    // fallback: відправка без координат
+    fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" }
+    });
   });
 }
 
@@ -560,7 +573,7 @@ async function sendPhoto(photoBase64) {
   }
 
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
       method: "POST",
       mode: "no-cors", // залишаємо, як ти просив
       body: formData

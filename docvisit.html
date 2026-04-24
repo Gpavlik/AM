@@ -625,18 +625,51 @@ async function saveDoctorVisit() {
     const agreement = row.querySelector("input.agreement").value;
     const competitors = row.querySelector("input.competitors")?.value || "";
 
-   visitsData.push({
-  product,
-  agreement,
-  competitors,
-  presentationShown: shownSlides.length > 0 ? "Так" : "Ні",
-  slides: shownSlides.join(",")
-});
-
+    visitsData.push({
+      product,
+      agreement,
+      competitors,
+      presentationShown: shownSlides.length > 0 ? "Так" : "Ні",
+      slides: shownSlides.join(",")
+    });
   });
 
-  try {
-    await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
+  // 🔎 Отримуємо координати перед відправкою
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          action: "saveDoctorVisit",
+          userName,
+          date,
+          time,
+          region,
+          city,
+          lpz,
+          specialty,
+          doctor,
+          lat,       // 🆕 координати
+          lon,       // 🆕 координати
+          data: visitsData
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+      alert("Візит відправлено на збереження!");
+      location.reload();
+    } catch (error) {
+      console.error("Помилка при збереженні:", error);
+      alert("Сталася помилка при збереженні візиту.");
+    }
+  }, err => {
+    console.error("❌ Помилка GPS:", err);
+    alert("Не вдалося отримати координати, але візит буде збережено без них.");
+    // fallback: відправка без координат
+    fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({
@@ -653,13 +686,9 @@ async function saveDoctorVisit() {
       }),
       headers: { "Content-Type": "application/json" }
     });
-    alert("Візит відправлено на збереження!");
-    location.reload();
-  } catch (error) {
-    console.error("Помилка при збереженні:", error);
-    alert("Сталася помилка при збереженні візиту.");
-  }
+  });
 }
+
 
 function validateVisitForm() {
   const region = document.getElementById("regionSelect").value;
@@ -685,7 +714,7 @@ function validateVisitForm() {
 }
 async function loadPreviousVisit(doctorName) {
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec?type=doctor&doctor=" + encodeURIComponent(doctorName));
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec?type=doctor&doctor=" + encodeURIComponent(doctorName));
     const visits = await res.json();
 
     const tbody = document.getElementById("previousVisitBody");

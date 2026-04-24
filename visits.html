@@ -498,59 +498,101 @@ document.getElementById("sendReport").addEventListener("click", async () => {
   };
 
   // 2. Детальна інформація на Візити
-const rows = document.querySelectorAll("#currentVisitBody tr");
-const detailedData = Array.from(rows).map(tr => {
-  const cells = tr.querySelectorAll("td");
-  return {
-    name: cells[0].textContent.trim(),
-    percent: cells[1].textContent.trim(),
-    qty: cells[2].textContent.trim(),
-    penetration: cells[3].textContent.trim(),
-    stock: cells[4].textContent.trim(),
-    expiry: cells[5].querySelector("input").value,
-    competitors: cells[6].textContent.trim(),
-    vtm: cells[7].querySelector("input[type='checkbox']").checked,
-    exclusive: cells[8].querySelector("input[type='checkbox']").checked,
-    conditions: cells[9].textContent.trim()
-  };
-})
-// фільтруємо лише ті рядки, де є хоча б одне заповнене поле
-.filter(r =>
-  r.percent || r.qty || r.penetration || r.stock || r.expiry || r.competitors || r.vtm || r.exclusive || r.conditions
-);
+  const rows = document.querySelectorAll("#currentVisitBody tr");
+  const detailedData = Array.from(rows).map(tr => {
+    const cells = tr.querySelectorAll("td");
+    return {
+      name: cells[0].textContent.trim(),
+      percent: cells[1].textContent.trim(),
+      qty: cells[2].textContent.trim(),
+      penetration: cells[3].textContent.trim(),
+      stock: cells[4].textContent.trim(),
+      expiry: cells[5].querySelector("input").value,
+      competitors: cells[6].textContent.trim(),
+      vtm: cells[7].querySelector("input[type='checkbox']").checked,
+      exclusive: cells[8].querySelector("input[type='checkbox']").checked,
+      conditions: cells[9].textContent.trim()
+    };
+  }).filter(r =>
+    r.percent || r.qty || r.penetration || r.stock || r.expiry || r.competitors || r.vtm || r.exclusive || r.conditions
+  );
 
+  // 🔎 Отримуємо координати перед відправкою
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
 
-  try {
-    // Відправка короткої інформації
-    await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify(shortData),
-      headers: { "Content-Type": "application/json" }
-    });
+    shortData.lat = lat;
+    shortData.lon = lon;
 
-    // Відправка детальної інформації
-    await fetch("https://script.google.com/macros/s/AKfycbz5nYRq0T3rdS3WuSDZM8yA2ROdwXiJIDM_y31e9Bisfqu5bzBsge6tqP-T6rYZni5Hjg/exec", {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        userName: currentUserName,
-        partnerName: selectedPartnerName,
-        date,
-        time,
-        status,
-        comment,
-        data: detailedData
-      }),
-      headers: { "Content-Type": "application/json" }
-    });
+    try {
+      // Відправка короткої інформації
+      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(shortData),
+        headers: { "Content-Type": "application/json" }
+      });
 
-    alert("Візит збережено!");
-    location.reload();
-  } catch (err) {
-    console.error("Помилка збереження:", err);
-    alert("Не вдалося зберегти візит");
-  }
+      // Відправка детальної інформації
+      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          userName: currentUserName,
+          partnerName: selectedPartnerName,
+          date,
+          time,
+          status,
+          comment,
+          lat,   // 🆕 координати
+          lon,   // 🆕 координати
+          data: detailedData
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      alert("Візит збережено!");
+      location.reload();
+    } catch (err) {
+      console.error("Помилка збереження:", err);
+      alert("Не вдалося зберегти візит");
+    }
+  }, async err => {
+    console.error("❌ Помилка GPS:", err);
+    alert("Не вдалося отримати координати, візит буде збережено без них.");
+
+    try {
+      // Відправка без координат
+      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(shortData),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      await fetch("https://script.google.com/macros/s/AKfycbwM5LMatnRKOiwlazyHya-JvzKRAM0Z32YIKgVsuSTZZdgykuTBOOeW0jkrRtMIwRqmVA/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          userName: currentUserName,
+          partnerName: selectedPartnerName,
+          date,
+          time,
+          status,
+          comment,
+          data: detailedData
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      alert("Візит збережено (без координат)!");
+      location.reload();
+    } catch (err2) {
+      console.error("Помилка збереження:", err2);
+      alert("Не вдалося зберегти візит");
+    }
+  });
 });
 </script>
 </body>
