@@ -195,18 +195,19 @@ input, select {
   }
 }
 
-/* ===== Select2 кастомізація ===== */
+/* Контейнер селекта */
 .select2-container .select2-selection--multiple {
-  background-color: #ffffff;
-  border: 1px solid #25a525;
+  background-color: #ffffff;   /* темно-зелений фон */
+  border: 1px solid #25a525;  /* світло-зелена рамка */
   border-radius: 8px;
-  min-height: 45px;
+  min-height: 45px;           /* більший розмір */
   padding: 6px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
 }
 
+/* Випадаючий список */
 .select2-container .select2-dropdown {
   background-color: #009400;
   color: #fff;
@@ -214,6 +215,7 @@ input, select {
   font-size: small;
 }
 
+/* Пошукове поле */
 .select2-container .select2-search__field {
   background-color: #fff;
   color: #000;
@@ -221,11 +223,10 @@ input, select {
   padding: 6px;
   font-size: 1rem;
 }
-
 .custom-select2.select2-container--default 
 .select2-selection--multiple 
 .select2-selection__choice {
-  position: relative !important;
+  position: relative !important;        /* базовий контейнер для абсолютного позиціонування */
   background-color: #009400 !important;
   color: #fff !important;
   border: none !important;
@@ -233,27 +234,29 @@ input, select {
   margin: 4px !important;
   font-size: 0.95rem !important;
   display: inline-block !important;
-  white-space: normal !important;
-  overflow-wrap: break-word !important;
+  white-space: normal !important;       /* дозволяє перенос рядків */
+  overflow-wrap: break-word !important; /* переносить довгі слова */
   word-break: break-word !important;
-  max-width: 50ch !important;
+  max-width: 50ch !important;           /* обмеження ~50 символів */
   box-sizing: border-box !important;
-  padding: 6px 6px 6px 20px !important;
+  padding: 6px 6px 6px 20px !important; /* відступи для тексту */
 }
 
+/* Текст всередині тегу */
 .custom-select2.select2-container--default 
 .select2-selection--multiple 
 .select2-selection__choice__display {
   display: block !important;
   color: #fff !important;
   line-height: 1.3 !important;
-  padding-right: 24px !important;
+  padding-right: 24px !important;       /* резервуємо місце під хрестик */
 }
 
+/* Хрестик справа вгорі */
 .custom-select2.select2-container--default 
 .select2-selection--multiple 
 .select2-selection__choice__remove {
-  position: absolute !important;
+  position: absolute !important;             /* відстань справа */
   color: #03ff03 !important;
   font-weight: bold !important;
   cursor: pointer !important;
@@ -262,13 +265,13 @@ input, select {
   border-radius: 50%;
   line-height: 0.5 !important;
   width: 10px !important;
-}
 
+}
 .custom-select2.select2-container--default 
 .select2-selection--multiple 
 .select2-selection__choice__remove:hover {
   color: #ff7070 !important;
-  background-color: transparent !important;
+  background-color: #25a52500 !important;
 }
 
 /* ===== Спідометри ===== */
@@ -339,6 +342,16 @@ input, select {
 </div><br><br>
 <div class="container">
   <div id="filters">
+        <select id="userFilter" style="display:none;">
+      <option value="">Виберіть співробітника</option>
+      <option value="fedir">Олександр Красніков</option>
+      <option value="olena">Тетяна Романовська</option>
+      <option value="office">Офіс</option>
+      <option value="andriy">Тетяна Кліменко</option>
+      <option value="maria">Тетяна Демус</option>
+      <option value="serhiy">Ілона Бабенко</option>
+    </select>
+    </label>
     <!--<input type="date" id="startDate">-->
     <select id="specialtyFilter">
       <option value="">Всі спеціальності</option>
@@ -637,11 +650,6 @@ async function refreshData(type, userKey) {
 }
 
 // ===== Ініціалізація =====
-$(document).ready(function() {
-  // Select2
-  $("#partnerSelect").select2({ placeholder:"Оберіть партнера", allowClear:true, width:'300px' });
-  $("#productSelect").select2({ placeholder:"Оберіть продукт", allowClear:true, width:'300px' });
-
   // Створюємо спідометри один раз
   initGauges();
 
@@ -661,7 +669,7 @@ $(document).ready(function() {
     const userKey = (currentUser === "admin") ? $("#userFilter").val() : currentUser;
     loadData(userKey);
   });
-});
+
 
 // ===== Парсинг дати =====
 function parseDate(str) {
@@ -685,6 +693,33 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script>
 //Блок для другого дашборду
+
+function resolveUserKey() {
+  const currentUser = localStorage.getItem("currentUser") || "office";
+  if (currentUser === "admin") {
+    const selectedUser = $("#userFilter").val();
+    return selectedUser || "office"; // якщо адмін не вибрав нікого → дефолт office
+  }
+  return currentUser;
+}
+async function reloadDashboard() {
+  const userKey = resolveUserKey();
+  plans = await getPlans(userKey);
+  const historyUrl = getHistoryUrl(userKey);
+
+  allPartners = [];
+  const ids = userMap[userKey] || [];
+  for (let id of ids) {
+    const products = await fetchHistory(id, historyUrl, JSON.parse(localStorage.getItem("partners")) || []);
+    const d = (JSON.parse(localStorage.getItem("partners")) || []).find(p => p.id === id);
+    if (!d) continue;
+    allPartners.push({ ...d, products });
+  }
+
+  allPartners.forEach(p => { p.products = []; });
+  distributePlanForPartners(plans, allPartners, quarter);
+  updateAllSevenSeg(plans, allPartners, quarter);
+}
 // ===== Глобальні змінні =====
 let plans = [];
 let allPartners = [];
@@ -832,11 +867,23 @@ function updateSevenSegBlock(planRows, partners, quarter, mode, prefix) {
       p.products.forEach(prod => { fact += prod.historyMoney?.[planKey] || 0; });
     });
   }
+const selectedUser = $("#userFilter").val() || "";
+
+if (selectedUser) {
+  const allowedIds = userMap[selectedUser] || [];
+  if (!allowedIds.includes(Number(p.id))) return;
+}
 
 if (mode === "blue") {
   partners.forEach(p => {
     // фільтр по партнерах
     if (selectedPartnerIds.length > 0 && !selectedPartnerIds.includes(String(p.id))) return;
+const selectedUser = $("#userFilter").val() || "";
+
+if (selectedUser) {
+  const allowedIds = userMap[selectedUser] || [];
+  if (!allowedIds.includes(Number(p.id))) return;
+}
 
     if (selectedProducts.length > 0) {
       // якщо вибрано продукт → беремо його
@@ -859,6 +906,7 @@ if (mode === "blue") {
 
 
   if (mode === "red") {
+
     // По продуктах — беремо план напряму з таблиці
     planRows.forEach(row => {
       if (selectedProducts.length > 0 && !selectedProducts.includes(row.product)) return;
@@ -879,12 +927,6 @@ if (mode === "blue") {
   animateSevenSeg(fact, prefix+"1");
   animateSevenSeg(percent, prefix+"2", "%");
 }
-// 1. Виклик при завантаженні сторінки
-document.addEventListener("DOMContentLoaded", () => {
-updateAllSevenSeg(plans, allPartners, quarter);
-  distributePlanForPartners(plans, allPartners, quarter);
-  
-});
 
 
 // 3. Обробники зміни селекторів
@@ -909,13 +951,13 @@ document.getElementById("productSelect").addEventListener("change", () => {
 
 // ===== Виклик при завантаженні сторінки =====
 document.addEventListener("DOMContentLoaded", async () => {
-  const userKey = localStorage.getItem("currentUser") || "office";
-  quarter = getCurrentQuarter();
+  const userKey = resolveUserKey();
+  const quarter = getCurrentQuarter();
 
   // Отримати плани
   plans = await getPlans(userKey);
 
-  // Отримати партнерів + історію
+// Отримати партнерів + історію
   const historyUrl = getHistoryUrl(userKey);
   const ids = userMap[userKey] || [];
   allPartners = [];
@@ -1066,7 +1108,7 @@ const historyUrlOleksandr = "https://docs.google.com/spreadsheets/d/1OhWc6BKpVML
 const historyUrlTetiana   = "https://docs.google.com/spreadsheets/d/1EeL08aCAa5PCwIYAtN49hQQibp5otMEm";
 const historyUrlOffice    = "https://docs.google.com/spreadsheets/d/1ju1NDfqXREsb56FuYlVTv8kei4eL5rhW";
 const historyUrlAndriy    = "https://docs.google.com/spreadsheets/d/1AAAAAAAAAAAAAAAAAAAA"; 
-const historyUrlMaria     = "https://docs.google.com/spreadsheets/d/1BBBBBBBBBBBBBBBBBBBB"; 
+const historyUrlMaria     = "https://docs.google.com/spreadsheets/d/1BBBBBBBBBBBBBBBBBBBB";
 const historyUrlSerhiy    = "https://docs.google.com/spreadsheets/d/1CCCCCCCCCCCCCCCCCCCC"; 
 
 // ===== Отримання планів =====
@@ -1102,9 +1144,9 @@ async function fetchPlan(planUrl) {
 const planUrlOleksandr = "https://docs.google.com/spreadsheets/d/1TtDl9d1rxAl7mCwlW7N6plVhxZYAVEk8";
 const planUrlTetiana   = "https://docs.google.com/spreadsheets/d/1IKqln_4KSXwcTiikO48E6j3XywHoebhI";
 const planUrlOffice    = "https://docs.google.com/spreadsheets/d/1URsMjWRwYmyy7aHtQ5EqmvD6Yct-rNmf";
-const planUrlAndriy    = "https://docs.google.com/spreadsheets/d/1AAAAAAAAAAAAAAAAAAAA";
-const planUrlMaria     = "https://docs.google.com/spreadsheets/d/1BBBBBBBBBBBBBBBBBBBB";
-const planUrlSerhiy    = "https://docs.google.com/spreadsheets/d/1CCCCCCCCCCCCCCCCCCCC";
+const planUrlAndriy    = "https://docs.google.com/spreadsheets/d/11gG1c-kos4CJXg1DoIS2dt5dRlVs5g8S";
+const planUrlMaria     = "https://docs.google.com/spreadsheets/d/177DleEUv7WjXLEm3ehB9pTF8HWABYUR1";
+const planUrlSerhiy    = "https://docs.google.com/spreadsheets/d/1M8ukS2zYasYJxpJCo8S-Tz4BYFwPr0kq";
 // ===== Допоміжні парсери =====
 function parseNum(v) {
   if (v === null || v === "" || v === undefined) return 0;
@@ -1413,8 +1455,8 @@ html += `
 
 ///__===== Головна ініціалізація =====
 document.addEventListener("DOMContentLoaded", async () => {
-  const userKey = localStorage.getItem("currentUser");
-  const quarter = "Q2";
+  const userKey = resolveUserKey();
+  const quarter = getCurrentQuarter();
 
   // отримуємо плани
   const plans = await getPlans(userKey);

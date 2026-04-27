@@ -718,8 +718,8 @@ function renderDoctorVisitsReport(data) {
       product: row.product,
       agreement: row.agreement,
       competitors: row.competitors,
-      presentationShown: row.presentationShown,
-      slides: row.slides
+      //presentationShown: row.presentationShown,
+      //slides: row.slides
     });
   });
 
@@ -734,8 +734,8 @@ function renderDoctorVisitsReport(data) {
           <th>Продукт</th>
           <th>Домовленість</th>
           <th>Конкуренти</th>
-          <th>Презентація</th>
-          <th>Слайди</th>
+          <!--<th>Презентація</th>-->
+          <!--<th>Слайди</th>-->
         </tr>
     `;
     v.products.forEach(p => {
@@ -743,8 +743,8 @@ function renderDoctorVisitsReport(data) {
         <td>${p.product || "-"}</td>
         <td>${p.agreement || "-"}</td>
         <td>${p.competitors || "-"}</td>
-        <td>${p.presentationShown || "-"}</td>
-        <td>${p.slides || "-"}</td>
+        <!--<td>${p.presentationShown || "-"}</td>-->
+        <!--<td>${p.slides || "-"}</td>-->
       </tr>`;
     });
     html += "</table><hr/>";
