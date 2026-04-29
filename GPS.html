@@ -123,115 +123,87 @@
   }
 
   async function showVisits() {
-    const userName = document.getElementById("userSelect").value;
-    const startDate = document.getElementById("startDate").value;
-    const endDate = document.getElementById("endDate").value;
+  const userName = document.getElementById("userSelect").value;
+  const startDate = document.getElementById("startDate").value;
+  const endDate = document.getElementById("endDate").value;
 
-    const allVisits = await loadGPS(userName, startDate, endDate);
+  const allVisits = await loadGPS(userName, startDate, endDate);
 
-    if (allVisits.length === 0) {
-      alert("Немає координат для цього користувача у вибраному періоді.");
-      return;
-    }
+  console.log("DEBUG: отримано візити:", allVisits);
 
-    allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
+  if (allVisits.length === 0) {
+    alert("Немає координат для цього користувача у вибраному періоді.");
+    return;
+  }
 
-    const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
-    map.setCenter(center);
-    map.setZoom(8);
+  // сортуємо по даті/часу
+  allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
 
-    const reportDiv = document.getElementById("report");
-    reportDiv.innerHTML = "";
+  const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
+  map.setCenter(center);
+  map.setZoom(8);
 
-    // створюємо таблицю
-const table = document.createElement("table");
-table.border = "1";
-const header = table.insertRow();
-["Користувач","Дата","Час","Заклад","Відстань (м)","Тип візиту"].forEach(h => {
-  const cell = header.insertCell();
-  cell.innerHTML = `<strong>${h}</strong>`;
-});
+  const reportDiv = document.getElementById("report");
+  reportDiv.innerHTML = "";
 
-allVisits.forEach((v, index) => {
-  const visitPos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
-  const placePos = (v.placeLat && v.placeLon) ? { lat: parseFloat(v.placeLat), lng: parseFloat(v.placeLon) } : null;
-
-  let color = "gray";
-  if (v.source === "doctor") color = "blue";
-  else if (v.source === "pharmacy") color = "yellow";
-  else if (v.source === "partner") color = "green";
-
-  let label = "";
-  if (index === 0) label = "Старт";
-  else if (index === allVisits.length - 1) label = "Фініш";
-
-  const visitMarker = new google.maps.marker.AdvancedMarkerElement({
-    position: visitPos,
-    map: map,
-    title: `${v.date} ${v.time}`,
-    content: (() => {
-      const div = document.createElement("div");
-      div.style.backgroundColor = color;
-      div.style.border = "1px solid black";
-      div.style.borderRadius = "50%";
-      div.style.width = "12px";
-      div.style.height = "12px";
-      div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
-      return div;
-    })()
+  const table = document.createElement("table");
+  table.border = "1";
+  const header = table.insertRow();
+  ["Користувач","Дата","Час","Заклад","Відстань (м)","Тип візиту"].forEach(h => {
+    const cell = header.insertCell();
+    cell.innerHTML = `<strong>${h}</strong>`;
   });
 
-  if (v.distance) {
-    const visitInfo = new google.maps.InfoWindow({
-      content: `<div>Відстань: ${v.distance} м<br>Час: ${v.time}</div>`
-    });
-    visitMarker.addListener("click", () => {
-      visitInfo.open(map, visitMarker);
-    });
-  }
+  allVisits.forEach((v, index) => {
+    const visitPos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
 
-  if (placePos) {
-    const placeMarker = new google.maps.marker.AdvancedMarkerElement({
-      position: placePos,
+    console.log(`DEBUG: малюю пін для ${v.userName} на ${v.lat}, ${v.lon}`);
+
+    // колір маркера
+    let color = "gray";
+    if (v.source === "doctor") color = "blue";
+    else if (v.source === "pharmacy") color = "yellow";
+    else if (v.source === "partner") color = "green";
+
+    let label = "";
+    if (index === 0) label = "Старт";
+    else if (index === allVisits.length - 1) label = "Фініш";
+
+    // малюємо маркер по lat/lon
+    new google.maps.marker.AdvancedMarkerElement({
+      position: visitPos,
       map: map,
-      title: v.partnerName || v.lpz || "Заклад"
+      title: `${v.date} ${v.time}`,
+      content: (() => {
+        const div = document.createElement("div");
+        div.style.backgroundColor = color;
+        div.style.border = "1px solid black";
+        div.style.borderRadius = "50%";
+        div.style.width = "12px";
+        div.style.height = "12px";
+        div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
+        return div;
+      })()
     });
 
-    const placeInfo = new google.maps.InfoWindow({
-      content: `<div><strong>${v.partnerName || v.lpz || "Заклад"}</strong></div>`
-    });
-    placeMarker.addListener("click", () => {
-      placeInfo.open(map, placeMarker);
-    });
+    // тип візиту
+    let visitType = "";
+    if (v.source === "doctor") visitType = "Лікар";
+    else if (v.source === "pharmacy") visitType = "Аптека";
+    else if (v.source === "partner") visitType = "Партнер";
 
-    new google.maps.Polyline({
-      path: [visitPos, placePos],
-      geodesic: true,
-      strokeColor: "#FF0000",
-      strokeOpacity: 1.0,
-      strokeWeight: 2,
-      map: map
-    });
-  }
+    // додаємо рядок у таблицю
+    const row = table.insertRow();
+    row.insertCell().innerText = v.userName;
+    row.insertCell().innerText = v.date;
+    row.insertCell().innerText = v.time;
+    row.insertCell().innerText = v.partnerName || v.lpz || v.address || "";
+    row.insertCell().innerText = v.distance || ""; // може бути порожнє
+    row.insertCell().innerText = visitType;
+  });
 
-// 🆕 перетворюємо source у українську назву
-  let visitType = "";
-  if (v.source === "doctor") visitType = "Лікар";
-  else if (v.source === "pharmacy") visitType = "Аптека";
-  else if (v.source === "partner") visitType = "Мережа";
-
-  // додаємо рядок у таблицю
-  const row = table.insertRow();
-  row.insertCell().innerText = v.userName;
-  row.insertCell().innerText = v.date;
-  row.insertCell().innerText = v.time;
-  row.insertCell().innerText = v.partnerName || v.lpz || v.address || "";
-  row.insertCell().innerText = v.distance || "";
-  row.insertCell().innerText = visitType; // 🆕 тип візиту
-});
-
-reportDiv.appendChild(table);
-  }
+  reportDiv.appendChild(table);
+}
 </script>
 
 <!-- правильне підключення API -->
