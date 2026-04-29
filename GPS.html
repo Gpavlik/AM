@@ -137,18 +137,33 @@ async function showVisits() {
     const pos = { lat: v.lat, lng: v.lon };
     console.log(`DEBUG: малюю пін ${index+1} для ${v.userName} на ${v.lat}, ${v.lon}`);
 
-    new google.maps.marker.AdvancedMarkerElement({
+    // вибір кольору за типом
+    let color = "gray";
+    if (v.source === "doctor") color = "blue";
+    else if (v.source === "pharmacy") color = "yellow";
+    else if (v.source === "partner") color = "green";
+
+    // стандартний маркер з кольоровою іконкою
+    new google.maps.Marker({
       position: pos,
       map: map,
-      title: `${v.userName} — ${v.date} ${v.time}`
+      title: `${v.userName} — ${v.date} ${v.time}`,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 6,
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: "black",
+        strokeWeight: 1
+      }
     });
   });
 }
 </script>
 
-<!-- Підключення API з твоїм ключем -->
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap&libraries=marker">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap">
 </script>
+
 </body>
 </html>
