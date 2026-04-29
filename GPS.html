@@ -5,77 +5,22 @@
   <title>Маршрут співробітника</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/jpg" href="bol.jpg">
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap" async defer></script>
+  <!-- правильне підключення Google Maps API -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&callback=initMap&libraries=marker"></script>
   <style>
-    #map { 
-      height: 800px; 
-      width: 90%; 
-      max-width: 1000px;
-      margin: 20px auto;
-      border: 1px solid #c2ffc2;
-      border-radius: 20px;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: linear-gradient(135deg, #009400, #004d00);
-      color: #ffffff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    label {
-      display: block; 
-      margin: 10px auto 5px auto; 
-      font-weight: bold;
-      width: 500px; 
-      text-align: left;
-    }
-    input, select {
-      width: 500px; 
-      padding: 10px; 
-      margin: 5px auto 15px auto;
-      border: none; 
-      border-radius: 6px; 
-      font-size: 1rem;
-      box-sizing: border-box;
-    }
-    button {
-      width: 200px; 
-      padding: 12px; 
-      margin: 10px 15px;
-      background-color: #004d00; 
-      color: #ffffff;
-      border: solid 1px #c2ffc2; 
-      border-radius: 6px; 
-      font-size: 1rem;
-      cursor: pointer; 
-      transition: background 0.3s ease;
-    }
+    #map { height: 800px; width: 90%; max-width: 1000px; margin: 20px auto; border: 1px solid #c2ffc2; border-radius: 20px; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #009400, #004d00); color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+    label { display: block; margin: 10px auto 5px auto; font-weight: bold; width: 500px; text-align: left; }
+    input, select { width: 500px; padding: 10px; margin: 5px auto 15px auto; border: none; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
+    button { width: 200px; padding: 12px; margin: 10px 15px; background-color: #004d00; color: #fff; border: solid 1px #c2ffc2; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.3s ease; }
     button:hover { background-color: #003300; }
-    .controls {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      max-width: 600px;
-    }
-    @media screen and (max-width: 480px) {
-      label, input, select { width: 90%; font-size: 0.9rem; }
-      button { width: 80%; font-size: 0.9rem; }
-    }
-    @media screen and (min-width: 481px) and (max-width: 768px) {
-      label, input, select { width: 80%; font-size: 1rem; }
-      button { width: 60%; font-size: 1rem; }
-    }
-    @media screen and (min-width: 769px) {
-      label, input, select { width: 500px; }
-      button { width: 200px; }
-    }
+    .controls { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; }
+    /* overlay */
+    #loadingOverlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; font-size: 20px; z-index: 9999; visibility: hidden; }
+    .spinner { border: 8px solid #f3f3f3; border-top: 8px solid #00ffcc; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
   </style>
-  </head>
+</head>
 <body>
   <label>Співробітник:</label>
   <select id="userSelect">
@@ -89,9 +34,32 @@
 
   <div id="map"></div>
 
-<script>
-let map;
+  <!-- overlay -->
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <p>Завантаження даних...</p>
+    <audio id="loadingMusic" loop>
+      <source src="loading.mp3" type="audio/mpeg">
+    </audio>
+  </div>
 
+<script>
+// ===== Кешування =====
+function saveCache(type, data, lastRow) {
+  localStorage.setItem(type + "Cache", JSON.stringify(data));
+  localStorage.setItem(type + "LastRow", lastRow);
+}
+function loadCache(type) {
+  const raw = localStorage.getItem(type + "Cache");
+  return raw ? JSON.parse(raw) : [];
+}
+function loadLastRow(type) {
+  const raw = localStorage.getItem(type + "LastRow");
+  return raw ? Number(raw) : 1; // 1 бо 0 — шапка
+}
+
+// ===== Карта =====
+let map;
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
     center: { lat: 50.45, lng: 30.52 },
@@ -100,16 +68,27 @@ function initMap() {
   refreshAllData("admin");
 }
 
+// ===== Overlay =====
 function showLoading() {
-  document.getElementById("loadingOverlay").style.visibility = "visible";
-  document.getElementById("loadingMusic").play();
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) {
+    overlay.style.visibility = "visible";
+    const music = document.getElementById("loadingMusic");
+    if (music) music.play();
+  }
 }
 function hideLoading() {
-  document.getElementById("loadingOverlay").style.visibility = "hidden";
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) overlay.style.visibility = "hidden";
   const music = document.getElementById("loadingMusic");
-  music.pause(); music.currentTime = 0;
+  if (music) { music.pause(); music.currentTime = 0; }
 }
 
+// ===== Оновлення кешів =====
+async function refreshData(type, userKey) {
+  // тут має бути твоя fetchIncremental(type, userKey)
+  await fetchIncremental(type, userKey);
+}
 async function refreshAllData(userKey) {
   showLoading();
   try {
@@ -124,17 +103,16 @@ async function refreshAllData(userKey) {
   }
 }
 
+// ===== Відображення =====
 function showVisits(userKey) {
   const doctors = loadCache("doctor");
   const partners = loadCache("partner");
   const pharmacies = loadCache("pharmacy");
-
   const allVisits = [...doctors, ...partners, ...pharmacies];
 
   allVisits.forEach(v => {
     if (!v.lat || !v.lon) return;
     const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
-
     const color = v.source === "doctor" ? "blue" :
                   v.source === "partner" ? "green" :
                   v.source === "pharmacy" ? "yellow" : "gray";
