@@ -103,33 +103,15 @@
   <img src="./ph.png" alt="logo" width="260">
 
 <script>
-  let map;
 
-  async function loadGPS(userName, startDate, endDate) {
-    let url = `https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec?type=gps&userName=${encodeURIComponent(userName)}`;
-    if (startDate) url += `&startDate=${startDate}`;
-    if (endDate) url += `&endDate=${endDate}`;
-
-    const response = await fetch(url);
-    const visits = await response.json();
-    return visits.filter(v => v.lat && v.lon);
-  }
-
-  function initMap() {
-    map = new google.maps.Map(document.getElementById("map"), {
-      zoom: 6,
-      center: { lat: 50.45, lng: 30.52 } // Київ
-    });
-  }
-
-  async function showVisits() {
+async function showVisits() {
   const userName = document.getElementById("userSelect").value;
   const startDate = document.getElementById("startDate").value;
   const endDate = document.getElementById("endDate").value;
 
   const allVisits = await loadGPS(userName, startDate, endDate);
 
-  console.log("DEBUG: отримано візити:", allVisits);
+  console.log("DEBUG: отримано візити", allVisits);
 
   if (allVisits.length === 0) {
     alert("Немає координат для цього користувача у вибраному періоді.");
@@ -139,73 +121,29 @@
   // сортуємо по даті/часу
   allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
 
+  // центруємо карту на першому візиті
   const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
   map.setCenter(center);
-  map.setZoom(8);
+  map.setZoom(10);
 
-  const reportDiv = document.getElementById("report");
-  reportDiv.innerHTML = "";
-
-  const table = document.createElement("table");
-  table.border = "1";
-  const header = table.insertRow();
-  ["Користувач","Дата","Час","Заклад","Відстань (м)","Тип візиту"].forEach(h => {
-    const cell = header.insertCell();
-    cell.innerHTML = `<strong>${h}</strong>`;
-  });
-
+  // малюємо маркери для кожного візиту
   allVisits.forEach((v, index) => {
-    const visitPos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
+    if (!v.lat || !v.lon) {
+      console.log("DEBUG: пропускаю візит без координат", v);
+      return;
+    }
 
-    console.log(`DEBUG: малюю пін для ${v.userName} на ${v.lat}, ${v.lon}`);
+    const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
+    console.log(`DEBUG: малюю пін ${index+1} для ${v.userName} на ${v.lat}, ${v.lon}`);
 
-    // колір маркера
-    let color = "gray";
-    if (v.source === "doctor") color = "blue";
-    else if (v.source === "pharmacy") color = "yellow";
-    else if (v.source === "partner") color = "green";
-
-    let label = "";
-    if (index === 0) label = "Старт";
-    else if (index === allVisits.length - 1) label = "Фініш";
-
-    // малюємо маркер по lat/lon
     new google.maps.marker.AdvancedMarkerElement({
-      position: visitPos,
+      position: pos,
       map: map,
-      title: `${v.date} ${v.time}`,
-      content: (() => {
-        const div = document.createElement("div");
-        div.style.backgroundColor = color;
-        div.style.border = "1px solid black";
-        div.style.borderRadius = "50%";
-        div.style.width = "12px";
-        div.style.height = "12px";
-        div.title = label ? `${label} (${v.date} ${v.time})` : `${v.date} ${v.time}`;
-        return div;
-      })()
+      title: `${v.date} ${v.time}`
     });
-
-    // тип візиту
-    let visitType = "";
-    if (v.source === "doctor") visitType = "Лікар";
-    else if (v.source === "pharmacy") visitType = "Аптека";
-    else if (v.source === "partner") visitType = "Партнер";
-
-    // додаємо рядок у таблицю
-    const row = table.insertRow();
-    row.insertCell().innerText = v.userName;
-    row.insertCell().innerText = v.date;
-    row.insertCell().innerText = v.time;
-    row.insertCell().innerText = v.partnerName || v.lpz || v.address || "";
-    row.insertCell().innerText = v.distance || ""; // може бути порожнє
-    row.insertCell().innerText = visitType;
   });
-
-  reportDiv.appendChild(table);
 }
 </script>
-
 <!-- правильне підключення API -->
 <script async
   src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap&libraries=marker">
