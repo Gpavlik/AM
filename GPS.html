@@ -76,31 +76,18 @@
   </style>
   </head>
 <body>
-  <h2>Маршрут співробітника</h2>
-  <img src="./logo.svg" alt="logo" width="260">
-  <div class="controls" id="controls">
-    <label for="userSelect">Співробітник:
-      <select id="userSelect">
-        <option value="">Виберіть співробітника</option>
-        <option value="fedir">Олександр Красніков</option>
-        <option value="olena">Тетяна Романовська</option>
-        <option value="office">Офіс</option>
-        <option value="andriy">Тетяна Кліменко</option>
-        <option value="maria">Тетяна Демус</option>
-        <option value="serhiy">Ілона Бабенко</option>
-      </select>
-    </label>
-    <label for="startDate">Початок:
-      <input type="date" id="startDate">
-    </label>
-    <label for="endDate">Кінець:
-      <input type="date" id="endDate">
-    </label>
-    <button onclick="showVisits()">Показати</button>
-  </div>
+  <label>Співробітник:</label>
+  <select id="userSelect">
+    <option value="Тетяна Романовська">Тетяна Романовська</option>
+  </select>
+  <label>Початок:</label>
+  <input type="date" id="startDate" value="2026-04-01">
+  <label>Кінець:</label>
+  <input type="date" id="endDate" value="2026-04-30">
+  <button onclick="showVisits()">Показати</button>
+
   <div id="map"></div>
-  <div id="report" style="margin-top:20px;"></div>
-  <img src="./ph.png" alt="logo" width="260">
+
 <script>
 let map;
 
@@ -113,7 +100,6 @@ async function loadGPS(userName, startDate, endDate) {
   const visits = await response.json();
   console.log("DEBUG: сирі дані з бекенду", visits);
 
-  // перетворюємо lat/lon у числа
   return visits.map(v => ({
     ...v,
     lat: v.lat ? parseFloat(v.lat) : null,
@@ -134,9 +120,8 @@ async function showVisits() {
   const endDate = document.getElementById("endDate").value;
 
   const allVisits = await loadGPS(userName, startDate, endDate);
-
-  // фільтруємо тільки ті, де є координати
   const visitsWithCoords = allVisits.filter(v => v.lat && v.lon);
+
   console.log("DEBUG: після фільтра", visitsWithCoords);
 
   if (visitsWithCoords.length === 0) {
@@ -144,15 +129,10 @@ async function showVisits() {
     return;
   }
 
-  // сортуємо по даті/часу
-  visitsWithCoords.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
-
-  // центруємо карту на першому візиті
   const center = { lat: visitsWithCoords[0].lat, lng: visitsWithCoords[0].lon };
   map.setCenter(center);
   map.setZoom(12);
 
-  // малюємо маркери
   visitsWithCoords.forEach((v, index) => {
     const pos = { lat: v.lat, lng: v.lon };
     console.log(`DEBUG: малюю пін ${index+1} для ${v.userName} на ${v.lat}, ${v.lon}`);
@@ -166,10 +146,8 @@ async function showVisits() {
 }
 </script>
 
-<!-- правильне підключення API -->
 <script async
   src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap&libraries=marker">
 </script>
 </body>
 </html>
-
