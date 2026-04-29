@@ -74,7 +74,7 @@
       button { width: 200px; }
     }
   </style>
-</head>
+  </head>
 <body>
   <h2>Маршрут співробітника</h2>
   <img src="./logo.svg" alt="logo" width="260">
@@ -101,8 +101,32 @@
   <div id="map"></div>
   <div id="report" style="margin-top:20px;"></div>
   <img src="./ph.png" alt="logo" width="260">
-
 <script>
+let map;
+
+async function loadGPS(userName, startDate, endDate) {
+  let url = `https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec?type=gps&userName=${encodeURIComponent(userName)}`;
+  if (startDate) url += `&startDate=${startDate}`;
+  if (endDate) url += `&endDate=${endDate}`;
+
+  const response = await fetch(url);
+  const visits = await response.json();
+  console.log("DEBUG: сирі дані з бекенду", visits);
+
+  // перетворюємо lat/lon у числа
+  return visits.map(v => ({
+    ...v,
+    lat: v.lat ? parseFloat(v.lat) : null,
+    lon: v.lon ? parseFloat(v.lon) : null
+  }));
+}
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 6,
+    center: { lat: 50.45, lng: 30.52 } // Київ
+  });
+}
 
 async function showVisits() {
   const userName = document.getElementById("userSelect").value;
@@ -111,26 +135,26 @@ async function showVisits() {
 
   const allVisits = await loadGPS(userName, startDate, endDate);
 
-  console.log("DEBUG: отримано візити", allVisits);
+  // фільтруємо тільки ті, де є координати
+  const visitsWithCoords = allVisits.filter(v => v.lat && v.lon);
+  console.log("DEBUG: після фільтра", visitsWithCoords);
 
-  if (allVisits.length === 0) {
+  if (visitsWithCoords.length === 0) {
     alert("Немає координат для цього користувача у вибраному періоді.");
     return;
   }
 
+  // сортуємо по даті/часу
+  visitsWithCoords.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
+
   // центруємо карту на першому візиті
-  const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
+  const center = { lat: visitsWithCoords[0].lat, lng: visitsWithCoords[0].lon };
   map.setCenter(center);
   map.setZoom(12);
 
-  // малюємо маркери для кожного візиту
-  allVisits.forEach((v, index) => {
-    if (!v.lat || !v.lon) {
-      console.log("DEBUG: пропускаю візит без координат", v);
-      return;
-    }
-
-    const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
+  // малюємо маркери
+  visitsWithCoords.forEach((v, index) => {
+    const pos = { lat: v.lat, lng: v.lon };
     console.log(`DEBUG: малюю пін ${index+1} для ${v.userName} на ${v.lat}, ${v.lon}`);
 
     new google.maps.marker.AdvancedMarkerElement({
@@ -140,11 +164,11 @@ async function showVisits() {
     });
   });
 }
-
 </script>
+
 <!-- правильне підключення API -->
 <script async
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap&libraries=marker">
+  src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap&libraries=marker">
 </script>
 </body>
 </html>
