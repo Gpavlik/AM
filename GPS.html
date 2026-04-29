@@ -118,13 +118,10 @@ async function showVisits() {
     return;
   }
 
-  // сортуємо по даті/часу
-  allVisits.sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
-
   // центруємо карту на першому візиті
   const center = { lat: parseFloat(allVisits[0].lat), lng: parseFloat(allVisits[0].lon) };
   map.setCenter(center);
-  map.setZoom(10);
+  map.setZoom(12);
 
   // малюємо маркери для кожного візиту
   allVisits.forEach((v, index) => {
@@ -139,10 +136,11 @@ async function showVisits() {
     new google.maps.marker.AdvancedMarkerElement({
       position: pos,
       map: map,
-      title: `${v.date} ${v.time}`
+      title: `${v.userName} — ${v.date} ${v.time}`
     });
   });
 }
+
 </script>
 <!-- правильне підключення API -->
 <script async
