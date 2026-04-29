@@ -484,6 +484,14 @@ document.getElementById("sendReport").addEventListener("click", async () => {
   const date = new Date().toLocaleDateString("uk-UA");
   const time = new Date().toLocaleTimeString("uk-UA", {hour: "2-digit", minute: "2-digit"});
 
+  // Генеруємо VisitID один раз
+const urlParams = new URLSearchParams(window.location.search);
+let visitId = urlParams.get("visitId");
+if (!visitId) {
+  visitId = Date.now(); // якщо не з календаря
+}
+
+
   // 1. Коротка інформація на partnerVisits
   const shortData = {
     action: "savePartnerVisit",
@@ -494,7 +502,8 @@ document.getElementById("sendReport").addEventListener("click", async () => {
     contactName,
     contactPhone,
     status,
-    comment
+    comment,
+    visitId
   };
 
   // 2. Детальна інформація на Візити
@@ -527,7 +536,7 @@ document.getElementById("sendReport").addEventListener("click", async () => {
 
     try {
       // Відправка короткої інформації
-      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(shortData),
@@ -535,18 +544,18 @@ document.getElementById("sendReport").addEventListener("click", async () => {
       });
 
       // Відправка детальної інформації
-      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({
+          action: "savePartnerProducts",
           userName: currentUserName,
           partnerName: selectedPartnerName,
           date,
           time,
           status,
           comment,
-          lat,   // 🆕 координати
-          lon,   // 🆕 координати
+          visitId,       // ← той самий VisitID
           data: detailedData
         }),
         headers: { "Content-Type": "application/json" }
@@ -563,24 +572,25 @@ document.getElementById("sendReport").addEventListener("click", async () => {
     alert("Не вдалося отримати координати, візит буде збережено без них.");
 
     try {
-      // Відправка без координат
-      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(shortData),
         headers: { "Content-Type": "application/json" }
       });
 
-      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({
+          action: "savePartnerProducts",
           userName: currentUserName,
           partnerName: selectedPartnerName,
           date,
           time,
           status,
           comment,
+          visitId,       // ← той самий VisitID
           data: detailedData
         }),
         headers: { "Content-Type": "application/json" }
@@ -594,6 +604,7 @@ document.getElementById("sendReport").addEventListener("click", async () => {
     }
   });
 });
+
 </script>
 </body>
 <html>

@@ -242,7 +242,7 @@ select.error {
 
   <h3>Попередній візит</h3>
   <table>
-    <thead><tr><th>Продукт</th><th>Домовленості (призн./тиж)</th><th>Конкуренти</th></tr></thead>
+    <thead><tr><th>Дата</th><th>Продукт</th><th>Домовленості (призн./тиж)</th><th>Конкуренти</th></tr></thead>
     <tbody id="previousVisitBody"></tbody>
   </table>
 
@@ -257,7 +257,7 @@ select.error {
 <div class="buttons">  
 
   
-  <button onclick="saveDoctorVisit()">Зберегти візит</button>
+  <button style="background-color: #4caf50;"  onclick="saveDoctorVisit()">Зберегти візит</button>
   <button onclick="window.location.href='calendar.html'">Перейти в календар</button>
   <button onclick="window.location.href='menu.html'">Перейти в меню</button>
 </div>
@@ -634,13 +634,21 @@ async function saveDoctorVisit() {
     });
   });
 
+  // 🆕 Генеруємо VisitID один раз
+const urlParams = new URLSearchParams(window.location.search);
+let visitId = urlParams.get("visitId");
+if (!visitId) {
+  visitId = Date.now(); // якщо не з календаря
+}
+
+
   // 🔎 Отримуємо координати перед відправкою
   navigator.geolocation.getCurrentPosition(async pos => {
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
     try {
-      await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({
@@ -653,8 +661,9 @@ async function saveDoctorVisit() {
           lpz,
           specialty,
           doctor,
-          lat,       // 🆕 координати
-          lon,       // 🆕 координати
+          lat,
+          lon,
+          visitId,       // ← той самий VisitID
           data: visitsData
         }),
         headers: { "Content-Type": "application/json" }
@@ -669,7 +678,7 @@ async function saveDoctorVisit() {
     console.error("❌ Помилка GPS:", err);
     alert("Не вдалося отримати координати, але візит буде збережено без них.");
     // fallback: відправка без координат
-    fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
       method: "POST",
       mode: "no-cors",
       body: JSON.stringify({
@@ -682,12 +691,14 @@ async function saveDoctorVisit() {
         lpz,
         specialty,
         doctor,
+        visitId,       // ← той самий VisitID
         data: visitsData
       }),
       headers: { "Content-Type": "application/json" }
     });
   });
 }
+
 
 
 function validateVisitForm() {
@@ -714,25 +725,29 @@ function validateVisitForm() {
 }
 async function loadPreviousVisit(doctorName) {
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=doctor&doctor=" + encodeURIComponent(doctorName));
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec?type=doctor&doctor=" + encodeURIComponent(doctorName));
     const visits = await res.json();
 
     const tbody = document.getElementById("previousVisitBody");
     tbody.innerHTML = "";
 
     if (visits.length > 0) {
-      const lastVisit = visits[visits.length - 1];
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${lastVisit.date}</td>
-        <td>${lastVisit.time}</td>
-        <td>${lastVisit.product}</td>
-        <td>${lastVisit.agreement}</td>
-        <td>${lastVisit.competitors}</td>
-        <td>${lastVisit.presentationShown}</td>
-        <td>${lastVisit.slides}</td>
-      `;
-      tbody.appendChild(tr);
+      // знаходимо останню дату
+      const lastDate = visits[visits.length - 1].date;
+
+      // фільтруємо всі рядки з цією датою
+      const lastVisits = visits.filter(v => v.date === lastDate);
+
+      lastVisits.forEach(v => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${v.date}</td>
+          <td>${v.product}</td>
+          <td>${v.agreement}</td>
+          <td>${v.competitors}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     } else {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td colspan="7">Попередніх візитів не знайдено</td>`;
@@ -744,6 +759,7 @@ async function loadPreviousVisit(doctorName) {
     tbody.innerHTML = `<tr><td colspan="7">Не вдалося підтягнути попередній візит (CORS)</td></tr>`;
   }
 }
+
 
 </script>
 </script>

@@ -227,6 +227,7 @@ button:hover { background-color: #25a525; }
   <div class="filters" id="userFilter" style="display:none;">
     <label>Користувач:
       <select id="userName">
+        <option value="">Всі</option>
         <option value="fedir">Олександр Красніков</option>
         <option value="olena">Тетяна Романовська</option>
         <option value="office">Офіс</option>
@@ -248,10 +249,10 @@ button:hover { background-color: #25a525; }
 
   <div class="buttons">
     <button onclick="loadReport('pharmacy')">Аптечні візити</button>
-    <button onclick="loadReport('pharmacyPhoto')">Фото</button>
+    <!--<button onclick="loadReport('pharmacyPhoto')">Фото</button>-->
     <button onclick="loadReport('partner')">Візити до партнерів</button>
-    <button id="doctorVisitsBtn">Візити до лікарів</button>
-    <button onclick="loadContactsReport()">Контактні особи</button>
+    <button onclick="loadReport('doctor')">Візити до лікарів</button>
+    <button onclick="loadReport('contacts')">Контактні особи</button>
     <button onclick="loadReport('calendar')">Календар</button>
   </div><br><br><br>
     <div class="buttons">  
@@ -276,11 +277,29 @@ button:hover { background-color: #25a525; }
   </div>
 
   <img src="./ph.png" alt="logo" width="260">
+<button id="scrollTopBtn" style="display:none; position:fixed; bottom:20px; right:20px; z-index:99;">
+  ↑ Вгору
+</button>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <script>
+    // показуємо кнопку при прокрутці вниз
+window.onscroll = function() {
+  const btn = document.getElementById("scrollTopBtn");
+  if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+    btn.style.display = "block";
+  } else {
+    btn.style.display = "none";
+  }
+};
+
+// плавна прокрутка вгору
+document.getElementById("scrollTopBtn").addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
 $(document).ready(function() {
   $("#partnerSelect").select2({
     placeholder: "Оберіть партнера",
@@ -341,7 +360,7 @@ if (currentUser === "admin") {
 let selectedPartnerName = "";
 let selectedProductName = "";
 let visits = [];        // глобально зберігаємо дані
-let currentType = "";   // глобально зберігаємо тип звіту
+
 
 // ініціалізація партнерів
 function initPartners(userKey) {
@@ -382,72 +401,107 @@ function initProducts() {
     selectedProductName = $(this).val() || [];
   });
 }
+let currentType = ""; // глобально зберігаємо тип звіту
 
-
-// завантаження звіту з урахуванням фільтрів
 async function loadReport(type) {
+  currentType = type; // запам’ятовуємо поточний тип
+
   const startDate = document.getElementById("startDate").value;
   const endDate = document.getElementById("endDate").value;
 
   let userKey = currentUser;
-  let userName;
-
+  let selectedUserKey = null;
   if (userKey === "admin") {
-    userName = document.getElementById("userName").value;
-    if (userNames[userName]) {
-      userName = userNames[userName];
-    }
-  } else {
-    userName = userNames[userKey];
+    selectedUserKey = document.getElementById("userName").value;
   }
 
-  const url = `https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=${type}`;
-
+  const url = `https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec?type=${type}`;
   const res = await fetch(url);
   const raw = await res.text();
 
   let data;
   try {
     data = JSON.parse(raw);
-  } catch (err) {
+  } catch {
     document.getElementById("report").innerHTML = "<p>Помилка парсингу JSON</p>";
     return;
   }
 
-  // 🔎 Фільтрація на фронтенді
-data = data.filter(row => {
-  const matchUser = (currentUser === "admin") ? true : row.userName === userName;
+  // 🔎 Єдина фільтрація для всіх типів
+  data = data.filter(row => {
+    let matchUser = true;
+    if (userKey === "admin" && selectedUserKey) {
+      matchUser = row.userName === userNames[selectedUserKey];
+    } else {
+      matchUser = row.userName === userNames[userKey];
+    }
 
-  let matchDate = true;
-  if (startDate) matchDate = matchDate && new Date(row.date) >= new Date(startDate);
-  if (endDate) matchDate = matchDate && new Date(row.date) <= new Date(endDate);
+    let matchDate = true;
+    if (startDate) matchDate = matchDate && new Date(row.date) >= new Date(startDate);
+    if (endDate) matchDate = matchDate && new Date(row.date) <= new Date(endDate);
 
-  const matchPartner = selectedPartnerName.length
-  ? selectedPartnerName.includes(row.partnerName)
-  : true;
+    const matchPartner = selectedPartnerName.length
+      ? selectedPartnerName.includes(row.partnerName)
+      : true;
 
-const matchProduct = selectedProductName.length
-  ? selectedProductName.includes(row.product)
-  : true;
+    const matchProduct = selectedProductName.length
+      ? selectedProductName.includes(row.product)
+      : true;
 
-
-  return matchUser && matchDate && matchPartner && matchProduct;
-});
-
+    return matchUser && matchDate && matchPartner && matchProduct;
+  });
 
   if (!data.length) {
     document.getElementById("report").innerHTML = "<p>Немає даних</p>";
     return;
   }
 
+  // 🔎 Виклик відповідного рендера
   if (type === "pharmacy") {
     renderPharmacyReport(data);
   } else if (type === "partner") {
     renderPartnerReport(data);
+  } else if (type === "doctor") {
+    renderDoctorVisitsReport(data);
+    populateFilters(data);
+    document.getElementById("filters").style.display = "block";
+  } else if (type === "contacts") {
+    renderDefaultTable(data);
   } else {
     renderDefaultTable(data);
   }
+
+  window.lastReportData = data;
 }
+
+// слухач для селектора користувача (адмін)
+document.getElementById("userName").addEventListener("change", () => {
+  if (currentType) {
+    loadReport(currentType); // одразу перезапускаємо поточний звіт
+  }
+});
+
+// слухач для селектора партнерів
+document.getElementById("partnerSelect").addEventListener("change", () => {
+  if (currentType) loadReport(currentType);
+});
+
+// слухач для селектора продуктів
+document.getElementById("productSelect").addEventListener("change", () => {
+  if (currentType) loadReport(currentType);
+});
+
+// слухачі для фільтрів лікарських візитів
+["cityFilter","lpzFilter","specialtyFilter"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => {
+    if (currentType === "doctor") {
+      const filtered = applyFilters(window.lastReportData || []);
+      renderDoctorVisitsReport(filtered);
+    }
+  });
+});
+
+
 function resetFilters() {
   // очищаємо поля дат
   document.getElementById("startDate").value = "";
@@ -619,83 +673,6 @@ function formatExpiry(expiry) {
     return expiry; // якщо не вдалося розпарсити, показуємо як є
   }
 }
-
-async function loadContactsReport() {
-  const url = `https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=contacts`;
-  
-  try {
-    const res = await fetch(url);
-    const raw = await res.text();
-    let data = JSON.parse(raw);
-
-    if (!data.length) {
-      document.getElementById("report").innerHTML = "<p>Немає даних</p>";
-      return;
-    }
-
-    // будуємо таблицю
-    let html = "<table>";
-    html += "<tr><th>Користувач</th><th>Партнер</th><th>Контактна особа</th><th>Телефон</th></tr>";
-    data.forEach(row => {
-      html += `<tr>
-        <td>${row.userName || "-"}</td>
-        <td>${row.partnerName || "-"}</td>
-        <td>${row.contactName || "-"}</td>
-        <td>${row.contactPhone || "-"}</td>
-      </tr>`;
-    });
-    html += "</table>";
-
-    document.getElementById("report").innerHTML = html;
-    window.lastReportData = data;
-  } catch (err) {
-    console.error(err);
-    document.getElementById("report").innerHTML = "<p>Помилка завантаження даних</p>";
-    
-  }
-}
-$(document).ready(function() {
-  $("#doctorVisitsBtn").on("click", function() {
-    loadDoctorVisitsReport();
-  });
-});
-
-async function loadDoctorVisitsReport() {
-  const url = `https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=doctor`;
-  
-  try {
-    const res = await fetch(url);
-    const raw = await res.text();
-    let data = JSON.parse(raw);
-
-    console.log("Full data:", data);
-
-    if (!data.length) {
-      document.getElementById("report").innerHTML = "<p>Немає даних</p>";
-      return;
-    }
-
-    // рендеримо звіт
-    renderDoctorVisitsReport(data);
-
-    // показуємо селекти тільки після рендеру
-    populateFilters(data);
-    document.getElementById("filters").style.display = "block";
-
-    // слухачі для селектів
-    ["cityFilter","lpzFilter","specialtyFilter"].forEach(id => {
-      document.getElementById(id).addEventListener("change", () => {
-        const filtered = applyFilters(data);
-        renderDoctorVisitsReport(filtered);
-      });
-    });
-
-  } catch (err) {
-    console.error(err);
-    document.getElementById("report").innerHTML = "<p>Помилка завантаження даних</p>";
-  }
-}
-
 function renderDoctorVisitsReport(data) {
   const grouped = {};
   data.forEach(row => {
@@ -804,6 +781,32 @@ document.addEventListener("DOMContentLoaded", () => {
   initProducts();
 });
 
+
+// слухач для селектора партнерів
+document.getElementById("partnerSelect").addEventListener("change", () => {
+  if (currentType) {
+    loadReport(currentType);
+  }
+});
+
+// слухач для селектора продуктів
+document.getElementById("productSelect").addEventListener("change", () => {
+  if (currentType) {
+    loadReport(currentType);
+  }
+});
+
+// слухачі для фільтрів лікарських візитів
+["cityFilter","lpzFilter","specialtyFilter"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => {
+    if (currentType === "doctor") {
+      // застосовуємо фільтри до вже завантажених даних
+      const filtered = applyFilters(window.lastReportData || []);
+      renderDoctorVisitsReport(filtered);
+    }
+  });
+});
+
 function exportToExcel() {
   const data = window.lastReportData || [];
   if (!data.length) {
@@ -823,8 +826,6 @@ function exportToExcel() {
   // генеруємо файл .xlsx
   XLSX.writeFile(wb, "report.xlsx");
 }
-
-
 </script>
 </body>
 </html>

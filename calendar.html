@@ -483,37 +483,44 @@ function handleEventClick(info) {
   document.getElementById('visitModal').style.display = 'block';
 
   // Кнопка "Почати"
-  document.getElementById('startBtn').onclick = async () => {
-    if (isPast) {
-      alert("Неможливо почати візит у минулому");
-      return;
-    }
+document.getElementById('startBtn').onclick = async () => {
+  if (isPast) {
+    alert("Неможливо почати візит у минулому");
+    return;
+  }
 
-    if (event.extendedProps.partnerId === "pharmacy" || event.extendedProps.partnerName === "Аптека") {
-      const userName = event.extendedProps.userName;
-      window.location.href = `visitpharm.html?userName=${encodeURIComponent(userName)}`;
-      return;
-    }
+  const userName = event.extendedProps.userName;
+  const visitId = event.extendedProps.visitId; // 🆕 беремо VisitID з календаря
 
-    if (event.extendedProps.partnerId === "doctor" || event.extendedProps.partnerName === "Лікар") {
-      const userName = event.extendedProps.userName;
-      window.location.href = `docvisit.html?userName=${encodeURIComponent(userName)}`;
-      return;
-    }
+  if (event.extendedProps.partnerId === "pharmacy" || event.extendedProps.partnerName === "Аптека") {
+    window.location.href = `visitpharm.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
+    return;
+  }
 
-    // ✅ міняємо тільки статус локально
-    event.setExtendedProp('status', 'Виконано');
-    event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
+  if (event.extendedProps.partnerId === "doctor" || event.extendedProps.partnerName === "Лікар") {
+    window.location.href = `docvisit.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
+    return;
+  }
 
-    const el = event.extendedProps.elRef;
-    if (el) styleEvent({ event: event, el: el });
+  if (event.extendedProps.partnerId === "partner" || event.extendedProps.partnerName === "Партнер") {
+    window.location.href = `partnervisit.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
+    return;
+  }
 
-    // ✅ синхронізація з localStorage і бекендом
-    await updateStatusInBackend(event, 'Виконано');
+  // ✅ міняємо тільки статус локально
+  event.setExtendedProp('status', 'Виконано');
+  event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
 
-    // перехід на сторінку візиту
-    window.location.href = `visits.html?partnerId=${event.extendedProps.partnerId}`;
-  };
+  const el = event.extendedProps.elRef;
+  if (el) styleEvent({ event: event, el: el });
+
+  // ✅ синхронізація з localStorage і бекендом
+  await updateStatusInBackend(event, 'Виконано');
+
+  // перехід на сторінку візиту
+  window.location.href = `visits.html?partnerId=${event.extendedProps.partnerId}&visitId=${visitId}`;
+};
+
 
   // Кнопка "Перенести" — тільки якщо статус "Заплановано"
   const rescheduleBtn = document.getElementById('rescheduleBtn');
@@ -592,7 +599,7 @@ async function updateStatusInBackend(event, newStatus) {
   }
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -676,7 +683,7 @@ async function updateDateInBackend(event, newDate, newTime) {
   if (el) styleEvent({ event: event, el: el });
 
   // бекенд
-  await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+  await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify({
@@ -747,7 +754,7 @@ async function addVisit() {
   localStorage.setItem("visits", JSON.stringify(visits));
 
  // бекенд
-await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
   method: "POST",
   mode: "no-cors",
   headers: { "Content-Type": "application/json" },
@@ -778,7 +785,7 @@ async function loadVisits() {
     renderVisits(localVisits);
 
     // тягнемо бекенд
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=calendar");
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec?type=calendar");
     const backendVisits = await res.json();
 
     const myVisits = backendVisits.filter(v => v.userName === currentUserName);

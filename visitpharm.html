@@ -189,7 +189,7 @@ td.to-sell { text-align: center; font-weight: bold; color: white; }
   <label>Коментар:</label>
   <input type="text" id="pharmacyComment">
  
-<form id="photoForm" action="https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
+<form id="photoForm" action="https://script.google.com/macros/s/AKfycbw360K3q2Nnc0B2c6D9VLcOsL-3EBA2r307Xcde5Kclxxlztc0KVgpbXujlbjhqlXMY4Q/exec" method="POST" mode= "no-cors" enctype="multipart/form-data" style="display:none;">
   <input type="hidden" name="action" value="savePharmacyPhoto">
   <input type="hidden" name="userName" id="userNameField">
   <input type="hidden" name="date" id="dateField">
@@ -417,7 +417,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-// Збереження даних візиту
 function savePharmacyVisit() {
   const rows = document.querySelectorAll("#productsTable tbody tr");
   const productsData = [];
@@ -427,22 +426,35 @@ function savePharmacyVisit() {
     const available = row.querySelector(".available").checked;
     const quantity = row.querySelector(".quantity").value;
     const competitors = row.querySelector(".competitors").value;
-    productsData.push({ name, available, quantity, competitors });
+
+    if (available || quantity || competitors) {
+      productsData.push({ name, available, quantity, competitors });
+    }
   });
 
   const urlParams = new URLSearchParams(window.location.search);
   let userName = urlParams.get("userName") || localStorage.getItem("currentUserName");
-
   if (!userName) {
     const currentUser = localStorage.getItem("currentUser");
     userName = userNames[currentUser] || currentUser;
   }
 
-  const data = {
-    action: "savePharmacyVisit",
-    userName: userName,
-    date: document.getElementById("visitDate").value,
-    time: document.getElementById("visitTime").value,
+  const date = document.getElementById("visitDate").value;
+  const time = document.getElementById("visitTime").value;
+
+  // Генеруємо VisitID один раз
+
+let visitId = urlParams.get("visitId");
+if (!visitId) {
+  visitId = Date.now(); // якщо не з календаря
+}
+
+
+  const shortData = {
+    action: "savePharmacyVisitShort",
+    userName,
+    date,
+    time,
     partnerId: document.getElementById("partnerSelect").value,
     partnerName: document.getElementById("partnerSelect").options[
       document.getElementById("partnerSelect").selectedIndex
@@ -454,47 +466,60 @@ function savePharmacyVisit() {
     display: document.getElementById("pharmacyDisplay").checked,
     awareness: document.getElementById("pharmacyAwareness").value,
     comment: document.getElementById("pharmacyComment").value,
-    products: productsData
+    visitId
   };
 
-  // 🔎 Отримуємо координати перед відправкою
-  navigator.geolocation.getCurrentPosition(pos => {
-    data.lat = pos.coords.latitude;
-    data.lon = pos.coords.longitude;
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
 
-    console.log("▶ Відправка візиту з координатами:", data);
+    shortData.lat = lat;
+    shortData.lon = lon;
 
-    fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" }
-    })
-    .then(res => res.text())
-    .then(txt => {
-      console.log("▶ Відповідь від скрипта:", txt);
-      alert("Візит збережено у phvisits!");
+    try {
+      // короткі дані
+      await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(shortData),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      // продукти з VisitID + викладка, обізнаність, коментар
+      if (productsData.length > 0) {
+        await fetch("https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec", {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({
+            action: "savePharmacyProducts",
+            userName,
+            date,
+            time,
+            partnerId: shortData.partnerId,
+            partnerName: shortData.partnerName,
+            city: shortData.city,
+            address: shortData.address,
+            display: shortData.display,
+            awareness: shortData.awareness,
+            comment: shortData.comment,
+            visitId,
+            data: productsData
+          }),
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      alert("Аптечний візит збережено!");
       location.reload();
-    })
-    .catch(err => {
+    } catch (err) {
       console.error("Помилка збереження:", err);
       alert("Не вдалося зберегти візит");
-    });
-  }, err => {
-    console.error("❌ Помилка GPS:", err);
-    alert("Не вдалося отримати координати, візит буде збережено без них.");
-
-    // fallback: відправка без координат
-    fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" }
-    });
+    }
   });
 }
 
-// Виклик камери
+
+/*Виклик камери
 document.getElementById("cameraBtn").addEventListener("click", () => {
   document.getElementById("cameraInput").click();
 });
@@ -573,7 +598,7 @@ async function sendPhoto(photoBase64) {
   }
 
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbw360K3q2Nnc0B2c6D9VLcOsL-3EBA2r307Xcde5Kclxxlztc0KVgpbXujlbjhqlXMY4Q/exec", {
       method: "POST",
       mode: "no-cors", // залишаємо, як ти просив
       body: formData
@@ -585,7 +610,7 @@ async function sendPhoto(photoBase64) {
     console.error("Помилка відправки:", err);
     alert("Не вдалося відправити дані");
   }
-}
+}*/
 </script>
 </body>
 </html>

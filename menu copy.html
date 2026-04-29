@@ -472,7 +472,7 @@ function loadLastRow(type) {
 
 async function fetchIncremental(type, userKey) {
   const lastRow = loadLastRow(type);
-  const url = `https://script.google.com/macros/s/AKfycbwLMuIF-a6O45OVpufaiKWzFu7SosN1CqTaVaIV2CRcGY4mjBjogGx7V3Le2WArppbQ_g/exec?type=${type}&userName=${userNames[userKey]}&lastRow=${lastRow}`;
+  const url = `https://script.google.com/macros/s/AKfycbxFVyS17sLFn9R07mJZl1V0Dcdgnq0omqag4ZXCe1F-VpIEPXZs2D1cuuUpahDLkwleeQQ/exec?type=${type}&userName=${userNames[userKey]}&lastRow=${lastRow}`;
   console.log(`🔗 Інкрементальний запит: ${url}`);
 
   try {
@@ -1506,4 +1506,160 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 </body>
-</html>
+</html>async function loadContactsReport() {
+  const url = `https://script.google.com/macros/s/AKfycbxFVyS17sLFn9R07mJZl1V0Dcdgnq0omqag4ZXCe1F-VpIEPXZs2D1cuuUpahDLkwleeQQ/exec?type=contacts`;
+  
+  try {
+    const res = await fetch(url);
+    const raw = await res.text();
+    let data = JSON.parse(raw);
+
+    // 🔎 Фільтрація по користувачу
+    let userKey = currentUser;
+    let selectedUserKey = null;
+    if (userKey === "admin") {
+      selectedUserKey = document.getElementById("userName").value;
+    }
+
+    data = data.filter(row => {
+      if (userKey === "admin" && selectedUserKey) {
+        return row.userName === userNames[selectedUserKey];
+      } else {
+        return row.userName === userNames[userKey];
+      }
+    });
+
+    if (!data.length) {
+      document.getElementById("report").innerHTML = "<p>Немає даних</p>";
+      return;
+    }
+
+    // будуємо таблицю
+    let html = "<table>";
+    html += "<tr><th>Користувач</th><th>Партнер</th><th>Контактна особа</th><th>Телефон</th></tr>";
+    data.forEach(row => {
+      html += `<tr>
+        <td>${row.userName || "-"}</td>
+        <td>${row.partnerName || "-"}</td>
+        <td>${row.contactName || "-"}</td>
+        <td>${row.contactPhone || "-"}</td>
+      </tr>`;
+    });
+    html += "</table>";
+
+    document.getElementById("report").innerHTML = html;
+    window.lastReportData = data;
+  } catch (err) {
+    console.error(err);
+    document.getElementById("report").innerHTML = "<p>Помилка завантаження даних</p>";
+  }
+}
+
+async function loadDoctorVisitsReport() {
+  const url = `https://script.google.com/macros/s/AKfycbxFVyS17sLFn9R07mJZl1V0Dcdgnq0omqag4ZXCe1F-VpIEPXZs2D1cuuUpahDLkwleeQQ/exec?type=doctor`;
+  
+  try {
+    const res = await fetch(url);
+    const raw = await res.text();
+    let data = JSON.parse(raw);
+
+    // 🔎 Фільтрація по користувачу
+    let userKey = currentUser;
+    let selectedUserKey = null;
+    if (userKey === "admin") {
+      selectedUserKey = document.getElementById("userName").value;
+    }
+
+    data = data.filter(row => {
+      if (userKey === "admin" && selectedUserKey) {
+        return row.userName === userNames[selectedUserKey];
+      } else {
+        return row.userName === userNames[userKey];
+      }
+    });
+
+    if (!data.length) {
+      document.getElementById("report").innerHTML = "<p>Немає даних</p>";
+      return;
+    }
+
+    // рендеримо звіт
+    renderDoctorVisitsReport(data);
+
+    // показуємо селекти тільки після рендеру
+    populateFilters(data);
+    document.getElementById("filters").style.display = "block";
+
+    // слухачі для селектів
+    ["cityFilter","lpzFilter","specialtyFilter"].forEach(id => {
+      document.getElementById(id).addEventListener("change", () => {
+        const filtered = applyFilters(data);
+        renderDoctorVisitsReport(filtered);
+      });
+    });
+
+    window.lastReportData = data;
+  } catch (err) {
+    console.error(err);
+    document.getElementById("report").innerHTML = "<p>Помилка завантаження даних</p>";
+  }
+}
+
+
+function renderDoctorVisitsReport(data) {
+  const grouped = {};
+  data.forEach(row => {
+    const key = `${row.userName}_${row.date}_${row.time}_${row.doctor}`;
+    if (!grouped[key]) {
+      grouped[key] = {
+        userName: row.userName,
+        date: row.date,
+        time: row.time,
+        region: row.region,
+        city: row.city,
+        lpz: row.lpz,
+        specialty: row.specialty,
+        doctor: row.doctor,
+        products: []
+      };
+    }
+
+    grouped[key].products.push({
+      product: row.product,
+      agreement: row.agreement,
+      competitors: row.competitors,
+      //presentationShown: row.presentationShown,
+      //slides: row.slides
+    });
+  });
+
+  let html = "";
+  Object.values(grouped).forEach(v => {
+    html += `
+      <h3>${v.userName} — ${v.date} ${v.time}</h3>
+      <p>Лікар: ${v.doctor} (${v.specialty})</p>
+      <p>ЛПЗ: ${v.lpz}, ${v.city}, ${v.region}</p>
+      <table>
+        <tr>
+          <th>Продукт</th>
+          <th>Домовленість</th>
+          <th>Конкуренти</th>
+          <!--<th>Презентація</th>-->
+          <!--<th>Слайди</th>-->
+        </tr>
+    `;
+    v.products.forEach(p => {
+      html += `<tr>
+        <td>${p.product || "-"}</td>
+        <td>${p.agreement || "-"}</td>
+        <td>${p.competitors || "-"}</td>
+        <!--<td>${p.presentationShown || "-"}</td>-->
+        <!--<td>${p.slides || "-"}</td>-->
+      </tr>`;
+    });
+    html += "</table><hr/>";
+  });
+
+  document.getElementById("report").innerHTML = html;
+  window.lastReportData = data;
+}
