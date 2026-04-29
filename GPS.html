@@ -5,6 +5,7 @@
   <title>Маршрут співробітника</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/jpg" href="bol.jpg">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap" async defer></script>
   <style>
     #map { 
       height: 800px; 
@@ -93,77 +94,66 @@ let map;
 
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
-    zoom: 6,
-    center: { lat: 50.45, lng: 30.52 } // Київ
+    center: { lat: 50.45, lng: 30.52 },
+    zoom: 10
   });
+  refreshAllData("admin");
 }
 
-async function loadGPS(userName, startDate, endDate) {
-  let url = `https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec?type=gps&userName=${encodeURIComponent(userName)}`;
-  if (startDate) url += `&startDate=${startDate}`;
-  if (endDate) url += `&endDate=${endDate}`;
-
-  const response = await fetch(url);
-  const visits = await response.json();
-  console.log("DEBUG: сирі дані з бекенду", visits);
-
-  return visits.map(v => ({
-    ...v,
-    lat: v.lat ? parseFloat(v.lat) : null,
-    lon: v.lon ? parseFloat(v.lon) : null
-  }));
+function showLoading() {
+  document.getElementById("loadingOverlay").style.visibility = "visible";
+  document.getElementById("loadingMusic").play();
+}
+function hideLoading() {
+  document.getElementById("loadingOverlay").style.visibility = "hidden";
+  const music = document.getElementById("loadingMusic");
+  music.pause(); music.currentTime = 0;
 }
 
-async function showVisits() {
-  const userName = document.getElementById("userSelect").value;
-  const startDate = document.getElementById("startDate").value;
-  const endDate = document.getElementById("endDate").value;
-
-  const allVisits = await loadGPS(userName, startDate, endDate);
-  const visitsWithCoords = allVisits.filter(v => v.lat && v.lon);
-
-  console.log("DEBUG: після фільтра", visitsWithCoords);
-
-  if (visitsWithCoords.length === 0) {
-    alert("Немає координат для цього користувача у вибраному періоді.");
-    return;
+async function refreshAllData(userKey) {
+  showLoading();
+  try {
+    await Promise.all([
+      refreshData("doctor", userKey),
+      refreshData("partner", userKey),
+      refreshData("pharmacy", userKey)
+    ]);
+    showVisits(userKey);
+  } finally {
+    hideLoading();
   }
+}
 
-  const center = { lat: visitsWithCoords[0].lat, lng: visitsWithCoords[0].lon };
-  map.setCenter(center);
-  map.setZoom(12);
+function showVisits(userKey) {
+  const doctors = loadCache("doctor");
+  const partners = loadCache("partner");
+  const pharmacies = loadCache("pharmacy");
 
-  visitsWithCoords.forEach((v, index) => {
-    const pos = { lat: v.lat, lng: v.lon };
-    console.log(`DEBUG: малюю пін ${index+1} для ${v.userName} на ${v.lat}, ${v.lon}`);
+  const allVisits = [...doctors, ...partners, ...pharmacies];
 
-    // вибір кольору за типом
-    let color = "gray";
-    if (v.source === "doctor") color = "blue";
-    else if (v.source === "pharmacy") color = "yellow";
-    else if (v.source === "partner") color = "green";
+  allVisits.forEach(v => {
+    if (!v.lat || !v.lon) return;
+    const pos = { lat: parseFloat(v.lat), lng: parseFloat(v.lon) };
 
-    // стандартний маркер з кольоровою іконкою
-    new google.maps.Marker({
+    const color = v.source === "doctor" ? "blue" :
+                  v.source === "partner" ? "green" :
+                  v.source === "pharmacy" ? "yellow" : "gray";
+
+    const div = document.createElement("div");
+    div.style.backgroundColor = color;
+    div.style.border = "1px solid black";
+    div.style.borderRadius = "50%";
+    div.style.width = "12px";
+    div.style.height = "12px";
+
+    new google.maps.marker.AdvancedMarkerElement({
       position: pos,
       map: map,
       title: `${v.userName} — ${v.date} ${v.time}`,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 6,
-        fillColor: color,
-        fillOpacity: 1,
-        strokeColor: "black",
-        strokeWeight: 1
-      }
+      content: div
     });
   });
 }
 </script>
-
-<script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap">
-</script>
-
 </body>
 </html>

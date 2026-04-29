@@ -321,9 +321,42 @@ input, select {
   font-weight: bold;
   color: #ffffff;
 }
+/* Красива анімація спінера */
+.spinner {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #00ffcc;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 </style>
 </head>
 <body>
+  <!-- Оверлей для очікування -->
+<div id="loadingOverlay" style="
+  position: fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: white;
+  font-size: 20px;
+  z-index: 9999;
+  visibility: hidden;
+">
+  <div class="spinner"></div>
+  <p>Завантаження даних...</p>
+  <audio id="loadingMusic" loop>
+    <source src="loading.mp3" type="audio/mpeg">
+  </audio>
+</div>
     <h1>Меню</h1>
     <div id="userInfoTop"></div>
 <br>
@@ -425,6 +458,32 @@ input, select {
     </div>
   </div>
  <img src="./ph.png" alt="logo" width="260">
+ <script>
+function showLoading() {
+  document.getElementById("loadingOverlay").style.visibility = "visible";
+  document.getElementById("loadingMusic").play();
+}
+
+function hideLoading() {
+  document.getElementById("loadingOverlay").style.visibility = "hidden";
+  document.getElementById("loadingMusic").pause();
+  document.getElementById("loadingMusic").currentTime = 0;
+}
+
+// приклад інтеграції з refreshAllData
+async function refreshAllData(userKey) {
+  showLoading();
+  try {
+    await Promise.all([
+      refreshData("doctor", userKey),
+      refreshData("partner", userKey),
+      refreshData("pharmacy", userKey)
+    ]);
+  } finally {
+    hideLoading();
+  }
+}
+</script>
 <script>
   function goTo(page) {
   window.location.href = page;
@@ -462,13 +521,27 @@ function saveCache(type, data, lastRow) {
   localStorage.setItem(type + "Cache", JSON.stringify(data));
   localStorage.setItem(type + "LastRow", lastRow);
 }
+
 function loadCache(type) {
   const raw = localStorage.getItem(type + "Cache");
-  return raw ? JSON.parse(raw) : [];
+  if (!raw) {
+    // якщо кеш ще не створений — ініціалізуємо пустий масив
+    localStorage.setItem(type + "Cache", JSON.stringify([]));
+    return [];
+  }
+  return JSON.parse(raw);
 }
+
 function loadLastRow(type) {
-  return Number(localStorage.getItem(type + "LastRow")) || 1;
+  const raw = localStorage.getItem(type + "LastRow");
+  if (!raw) {
+    localStorage.setItem(type + "LastRow", 1); // перший рядок — шапка
+    return 1;
+  }
+  return Number(raw);
 }
+
+
 
 async function fetchIncremental(type, userKey) {
   const lastRow = loadLastRow(type);
@@ -669,7 +742,7 @@ async function refreshData(type, userKey) {
   // Оновлюємо кеш і перемальовуємо
   refreshData("doctor", currentUser);
   refreshData("partner", currentUser);
-
+  refreshData("pharmacy", currentUser);
   // При зміні фільтрів — перемальовуємо з кешу
   $("#userFilter, #specialtyFilter, #partnerSelect, #productSelect, #startDate").on("change", function() {
     const userKey = (currentUser === "admin") ? $("#userFilter").val() : currentUser;
