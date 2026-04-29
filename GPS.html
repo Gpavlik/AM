@@ -91,6 +91,13 @@
 <script>
 let map;
 
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 6,
+    center: { lat: 50.45, lng: 30.52 } // Київ
+  });
+}
+
 async function loadGPS(userName, startDate, endDate) {
   let url = `https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec?type=gps&userName=${encodeURIComponent(userName)}`;
   if (startDate) url += `&startDate=${startDate}`;
@@ -105,13 +112,6 @@ async function loadGPS(userName, startDate, endDate) {
     lat: v.lat ? parseFloat(v.lat) : null,
     lon: v.lon ? parseFloat(v.lon) : null
   }));
-}
-
-function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    zoom: 6,
-    center: { lat: 50.45, lng: 30.52 } // Київ
-  });
 }
 
 async function showVisits() {
@@ -146,8 +146,9 @@ async function showVisits() {
 }
 </script>
 
-<script async
-  src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap&libraries=marker">
+<!-- Підключення API з твоїм ключем -->
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAA6Ca97lK_WjLvqmQsZuNyQWzf5S9qTmo&callback=initMap&libraries=marker">
 </script>
 </body>
 </html>
