@@ -482,28 +482,25 @@ async function fetchIncremental(type, userKey) {
     let cache = loadCache(type);
 
     if (data.length > 0) {
-      let seen;
-      let fresh;
+      // визначаємо ключ унікальності залежно від типу
+      const makeKey = (v) => {
+        if (type === "doctor") return v.date + "_" + v.doctor;
+        if (type === "partner") return v.date + "_" + v.partnerName;
+        if (type === "pharmacy") return v.date + "_" + v.partnerName + "_" + v.address;
+        return v.visitId || (v.date + "_" + v.time);
+      };
 
-      if (type === "doctor") {
-        seen = new Set(cache.map(v => v.date + "_" + v.doctor));
-        fresh = data.filter(v => !seen.has(v.date + "_" + v.doctor));
-      } else if (type === "partner") {
-        seen = new Set(cache.map(v => v.date + "_" + v.partnerName));
-        fresh = data.filter(v => !seen.has(v.date + "_" + v.partnerName));
-      } else {
-        // fallback: якщо інший тип
-        seen = new Set(cache.map(v => v.visitId));
-        fresh = data.filter(v => !seen.has(v.visitId));
-      }
+      const seen = new Set(cache.map(makeKey));
+      const fresh = data.filter(v => !seen.has(makeKey(v)));
 
       if (fresh.length > 0) {
         cache = cache.concat(fresh);
         const newLastRow = lastRow + fresh.length;
         saveCache(type, cache, newLastRow);
+        console.log(`✅ Оновлено кеш [${type}]: додано ${fresh.length} нових записів`);
+      } else {
+        console.log(`ℹ️ Нових даних для [${type}] немає`);
       }
-    } else {
-      console.log(`ℹ️ Нових даних для [${type}] немає`);
     }
 
     return cache;
@@ -512,6 +509,7 @@ async function fetchIncremental(type, userKey) {
     return loadCache(type);
   }
 }
+
 
 // ===== Допоміжні функції =====
 function countWorkingDays(startDate, endDate) {
