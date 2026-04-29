@@ -415,7 +415,7 @@ async function loadReport(type) {
     selectedUserKey = document.getElementById("userName").value;
   }
 
-  const url = `https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec?type=${type}`;
+  const url = `https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec?type=${type}`;
   const res = await fetch(url);
   const raw = await res.text();
 

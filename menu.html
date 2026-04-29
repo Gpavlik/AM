@@ -354,11 +354,11 @@ input, select {
     </label>
     <!--<input type="date" id="startDate">-->
     <select id="specialtyFilter">
-      <option value="">Всі спеціальності</option>
+      <option value="Всі спеціальності">Всі спеціальності</option>
       <option value="Гастроентерологія">Гастроентерологія</option>
       <option value="Отоларингологія">Отоларингологія</option>
       <option value="Гінекологія">Гінекологія</option>
-      <option value="Партнери">Партнери</option>
+      <option value="Партнер">Партнер</option>
     </select>
   </div>
   <div class="dashboard">
@@ -472,7 +472,7 @@ function loadLastRow(type) {
 
 async function fetchIncremental(type, userKey) {
   const lastRow = loadLastRow(type);
-  const url = `https://script.google.com/macros/s/AKfycbwNtosbePcFx4LMjxy3RxF6qVn2UGHlGo0iHtwbZURuPvcDF4WhJaGz8O8hj1BanmGPCw/exec?type=${type}&userName=${userNames[userKey]}&lastRow=${lastRow}`;
+  const url = `https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec?type=${type}&userName=${userNames[userKey]}&lastRow=${lastRow}`;
   console.log(`🔗 Інкрементальний запит: ${url}`);
 
   try {
@@ -552,10 +552,14 @@ function updateGauge(id, value) {
   if (id === "gaugeMonth" && gaugeMonth) gaugeMonth.refresh(value);
   if (id === "gaugeQuarter" && gaugeQuarter) gaugeQuarter.refresh(value);
 }
-
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
 // ===== Основна логіка =====
 function loadData(userKey) {
-  const specialty = $("#specialtyFilter").val(); // лише спеціальність
+  const specialty = $("#specialtyFilter").val();
 
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -577,55 +581,62 @@ function loadData(userKey) {
     quarter: { start: startOfQuarter, end: endOfQuarter }
   };
 
-  // 🔎 Лікарські візити
-  let doctorVisits = loadCache("doctor");
   const userName = userNames[userKey] || userKey;
-  doctorVisits = doctorVisits.filter(v => v.userName === userName);
-  console.log("Фільтрую doctorVisits для користувача:", userName, "Знайдено:", doctorVisits.length);
+
+  let doctorVisits = loadCache("doctor").filter(v => v.userName === userName);
+  let partnerVisits = loadCache("partner")
+    .filter(v => v.userName === userName)
+    .map(v => ({ ...v, specialty: "Партнер" })); // 🆕 додаємо поле
+
+  
 
   for (const [key, period] of Object.entries(periods)) {
-    redrawGauges(key, doctorVisits, specialty, period);
+    redrawGauges(key, doctorVisits, partnerVisits, specialty, period);
   }
-
-  // 🔎 Партнерські візити (якщо треба окремо рахувати)
-  let partnerVisits = loadCache("partner");
-  partnerVisits = partnerVisits.filter(v => v.userName === userName);
-  console.log("Фільтрую partnerVisits для користувача:", userName, "Знайдено:", partnerVisits.length);
-
-  // тут можна викликати окрему функцію для відображення партнерських даних
-  // redrawPartnerGauges(partnerVisits, periods); // приклад
 }
 
-
-
-function isSameDay(d1, d2) {
-  return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getDate() === d2.getDate();
-}
-function redrawGauges(key, doctorVisits, specialty, period) {
+function redrawGauges(key, doctorVisits, partnerVisits, specialty, period) {
+  // фільтруємо лікарські
   doctorVisits = doctorVisits.filter(v => {
     const d = parseDate(v.date);
     if (!d) return false;
-
-    if (key === "day") {
-      return isSameDay(d, period.start); // тільки дата, без часу
-    }
+    if (key === "day") return isSameDay(d, period.start);
     return d >= period.start && d <= period.end;
   });
 
-  if (specialty && specialty !== "Всі спеціальності") {
-    doctorVisits = doctorVisits.filter(v => v.specialty === specialty);
-  }
+  // фільтруємо партнерські
+  partnerVisits = partnerVisits.filter(v => {
+    const d = parseDate(v.date);
+    if (!d) return false;
+    if (key === "day") return isSameDay(d, period.start);
+    return d >= period.start && d <= period.end;
+  });
 
-  const factTotal = uniqueDoctorVisits(doctorVisits);
-
-  const days = countWorkingDays(period.start, period.end);
+  let factTotal = 0;
   let planTotal = 0;
-  if (specialty === "Гастроентерологія") planTotal = planDay.gastro * days;
-  else if (specialty === "Отоларингологія") planTotal = planDay.oto * days;
-  else if (specialty === "Гінекологія") planTotal = planDay.gyn * days;
-  else planTotal = (planDay.gastro + planDay.oto + planDay.gyn) * days;
+  const days = countWorkingDays(period.start, period.end);
+
+  if (specialty === "Партнер") {
+  factTotal = uniquePartnerVisits(partnerVisits);
+  planTotal = planDay.partner * days;
+} else if (specialty && specialty !== "Всі спеціальності") {
+  const filteredDoctors = doctorVisits.filter(v => 
+    v.specialty && v.specialty.trim().toLowerCase() === specialty.trim().toLowerCase()
+  );
+  factTotal = uniqueDoctorVisits(filteredDoctors);
+
+  const specNorm = specialty.trim().toLowerCase();
+  if (specNorm === "гастроентерологія") planTotal = planDay.gastro * days;
+  else if (specNorm === "отоларингологія") planTotal = planDay.oto * days;
+  else if (specNorm === "гінекологія") planTotal = planDay.gyn * days;
+}
+ else {
+  const factDoctors = uniqueDoctorVisits(doctorVisits);
+  const factPartners = uniquePartnerVisits(partnerVisits);
+  factTotal = factDoctors + factPartners;
+  planTotal = (planDay.gastro + planDay.oto + planDay.gyn + planDay.partner) * days;
+}
+
 
   const percent = planTotal > 0 ? (factTotal / planTotal) * 100 : 0;
   const gaugeId = "gauge" + key.charAt(0).toUpperCase() + key.slice(1);
@@ -635,10 +646,7 @@ function redrawGauges(key, doctorVisits, specialty, period) {
   const infoId = gaugeId + "Info";
   document.getElementById(infoId).textContent =
     `Факт: ${factTotal} | План: ${planTotal} | ${percent.toFixed(1)}%`;
-
-  console.log("🔎", key, "Факт:", factTotal, "План:", planTotal);
 }
-
 
 // ===== Оновлення кешу і перемальовування =====
 async function refreshData(type, userKey) {
@@ -692,9 +700,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 <script>
-
 // ===== Константи та глобальні змінні =====
-
 const planUrlOleksandr = "https://docs.google.com/spreadsheets/d/1TtDl9d1rxAl7mCwlW7N6plVhxZYAVEk8";
 const planUrlTetiana   = "https://docs.google.com/spreadsheets/d/1IKqln_4KSXwcTiikO48E6j3XywHoebhI";
 const planUrlOffice    = "https://docs.google.com/spreadsheets/d/1URsMjWRwYmyy7aHtQ5EqmvD6Yct-rNmf";
