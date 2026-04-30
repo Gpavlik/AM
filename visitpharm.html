@@ -478,7 +478,7 @@ if (!visitId) {
 
     try {
       // короткі дані
-      await fetch("https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbz_uLWhj_ww5YLdnrdgGWu9l2AGraznsiGjVSV8dnMuPygaK8vJRKlv-7O9Ou0krKzIAA/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(shortData),
@@ -487,7 +487,7 @@ if (!visitId) {
 
       // продукти з VisitID + викладка, обізнаність, коментар
       if (productsData.length > 0) {
-        await fetch("https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec", {
+        await fetch("https://script.google.com/macros/s/AKfycbz_uLWhj_ww5YLdnrdgGWu9l2AGraznsiGjVSV8dnMuPygaK8vJRKlv-7O9Ou0krKzIAA/exec", {
           method: "POST",
           mode: "no-cors",
           body: JSON.stringify({

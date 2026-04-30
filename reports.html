@@ -403,8 +403,21 @@ function initProducts() {
 }
 let currentType = ""; // глобально зберігаємо тип звіту
 
+function normalizeDate(d) {
+  // ISO формат YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+
+  // Український формат DD.MM.YYYY
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(d)) {
+    const [day, month, year] = d.split(".");
+    return `${year}-${month}-${day}`;
+  }
+
+  return d; // fallback
+}
+
 async function loadReport(type) {
-  currentType = type; // запам’ятовуємо поточний тип
+  currentType = type;
 
   const startDate = document.getElementById("startDate").value;
   const endDate = document.getElementById("endDate").value;
@@ -415,64 +428,62 @@ async function loadReport(type) {
     selectedUserKey = document.getElementById("userName").value;
   }
 
-  const url = `https://script.google.com/macros/s/AKfycbwe6U1COu-_Qb2gdfXtYj87v6iwRoPsxU9SkoAZOMZpaNVdKLs6USBHtkB3CnmFkMXxnw/exec?type=${type}`;
-  const res = await fetch(url);
-  const raw = await res.text();
+  // читаємо дані з кешу
+  let data = JSON.parse(localStorage.getItem(type + "Cache")) || [];
 
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    document.getElementById("report").innerHTML = "<p>Помилка парсингу JSON</p>";
-    return;
+  // 🔎 Фільтрація для всіх типів (крім contacts)
+  if (type !== "contacts") {
+    data = data.filter(row => {
+      let matchUser = true;
+      if (userKey === "admin" && selectedUserKey) {
+        matchUser = row.userName === userNames[selectedUserKey];
+      } else {
+        matchUser = row.userName === userNames[userKey];
+      }
+
+      let matchDate = true;
+      const d = normalizeDate(row.date);
+      if (startDate) matchDate = matchDate && d >= startDate;
+      if (endDate) matchDate = matchDate && d <= endDate;
+
+      const matchPartner = selectedPartnerName.length
+        ? selectedPartnerName.includes(row.partnerName)
+        : true;
+
+      const matchProduct = selectedProductName.length
+        ? selectedProductName.includes(row.product)
+        : true;
+
+      return matchUser && matchDate && matchPartner && matchProduct;
+    });
   }
 
-  // 🔎 Єдина фільтрація для всіх типів
-  data = data.filter(row => {
-    let matchUser = true;
-    if (userKey === "admin" && selectedUserKey) {
-      matchUser = row.userName === userNames[selectedUserKey];
-    } else {
-      matchUser = row.userName === userNames[userKey];
-    }
+  // перед рендером ховаємо всі додаткові фільтри
+  document.getElementById("filters").style.display = "none";
+  document.getElementById("partnerFilter").style.display = "none";
 
-    let matchDate = true;
-    if (startDate) matchDate = matchDate && new Date(row.date) >= new Date(startDate);
-    if (endDate) matchDate = matchDate && new Date(row.date) <= new Date(endDate);
-
-    const matchPartner = selectedPartnerName.length
-      ? selectedPartnerName.includes(row.partnerName)
-      : true;
-
-    const matchProduct = selectedProductName.length
-      ? selectedProductName.includes(row.product)
-      : true;
-
-    return matchUser && matchDate && matchPartner && matchProduct;
-  });
-
-  if (!data.length) {
-    document.getElementById("report").innerHTML = "<p>Немає даних</p>";
-    return;
-  }
-
-  // 🔎 Виклик відповідного рендера
-  if (type === "pharmacy") {
+   if (type === "contacts") {
+    renderContactsReport();
+  } else if (type === "calendar") {
+  const data = JSON.parse(localStorage.getItem("calendarCache")) || [];
+  renderCalendarReport(data);
+  } else if (type === "pharmacy") {
     renderPharmacyReport(data);
+    document.getElementById("partnerFilter").style.display = "flex";
   } else if (type === "partner") {
     renderPartnerReport(data);
+    document.getElementById("partnerFilter").style.display = "flex";
   } else if (type === "doctor") {
     renderDoctorVisitsReport(data);
     populateFilters(data);
-    document.getElementById("filters").style.display = "block";
-  } else if (type === "contacts") {
-    renderDefaultTable(data);
+    document.getElementById("filters").style.display = "block"; // показуємо селекти лікарів
   } else {
     renderDefaultTable(data);
   }
 
   window.lastReportData = data;
 }
+
 
 // слухач для селектора користувача (адмін)
 document.getElementById("userName").addEventListener("change", () => {
@@ -503,78 +514,51 @@ document.getElementById("productSelect").addEventListener("change", () => {
 
 
 function resetFilters() {
-  // очищаємо поля дат
   document.getElementById("startDate").value = "";
   document.getElementById("endDate").value = "";
-
-  // очищаємо селекти
   document.getElementById("partnerSelect").value = "";
   document.getElementById("productSelect").value = "";
 
-  // якщо адмін — теж очищаємо селект користувача
   if (currentUser === "admin") {
     document.getElementById("userName").value = "";
   }
 
-  // скидаємо глобальні змінні
   selectedPartnerName = "";
   selectedProductName = "";
 
-  // перезапускаємо ініціалізацію партнерів і продуктів
   initPartners(currentUser);
   initProducts();
 
-  // очищаємо звіт
+  // ховаємо селекти лікарів
+  document.getElementById("filters").style.display = "none";
+  document.getElementById("cityFilter").innerHTML = "<option value=''>Всі</option>";
+  document.getElementById("lpzFilter").innerHTML = "<option value=''>Всі</option>";
+  document.getElementById("specialtyFilter").innerHTML = "<option value=''>Всі</option>";
+
+  // ховаємо селекти аптек/партнерів
+  document.getElementById("partnerFilter").style.display = "none";
+
   document.getElementById("report").innerHTML = "<p>Фільтри скинуто. Оберіть нові параметри.</p>";
 }
 
-// аптечні візити
 function renderPharmacyReport(data) {
-  const grouped = {};
-  data.forEach(row => {
-    const key = `${row.userName}_${row.date}_${row.time}_${row.partnerId}`;
-    if (!grouped[key]) {
-      grouped[key] = {
-        userName: row.userName,
-        date: row.date,
-        time: row.time,
-        partnerId: row.partnerId,
-        partnerName: row.partnerName,
-        city: row.city,
-        address: row.address,
-        contact: row.contactName,
-        phone: row.contactPhone,
-        display: row.display,
-        awareness: row.awareness,
-        comment: row.comment,
-        products: []
-      };
-    }
-    grouped[key].products.push({
-      name: row.product,
-      available: row.available,
-      quantity: row.quantity,
-      competitor: row.competitors
-    });
-  });
-
   let html = "";
-  Object.values(grouped).forEach(v => {
+  data.forEach(v => {
     html += `
       <h3>${v.userName} — ${v.date} ${v.time}</h3>
       <p>${v.partnerName}, ${v.city}, ${v.address}</p>
-      <p>Контакт: ${v.contact || "-"} (${v.phone || "-"})</p>
-      <p>Викладка: ${v.display}, Обізнаність: ${v.awareness}</p>
-      <p>Коментар: ${v.comment}</p>
+      <p>Контакт: ${v.contactName || "-"} (${v.contactPhone || "-"})</p>
+      <p>Викладка: ${v.display || "-"}, Обізнаність: ${v.awareness || "-"}</p>
+      <p>Коментар: ${v.comment || "-"}</p>
       <table>
         <tr><th>Продукт</th><th>Наявність</th><th>Кількість</th><th>Конкурент</th></tr>
     `;
-    v.products.forEach(p => {
+    (v.products || []).forEach(p => {
       html += `<tr>
-        <td>${p.name}</td>
-        <td>${p.available}</td>
+        <td>${p.product || p.name || "-"}</td>
+        <td>${p.available || "-"}</td>
         <td>${p.quantity || "-"}</td>
-        <td>${p.competitor || "-"}</td>
+        <td>${p.competitors || p.competitor || "-"}</td>
       </tr>`;
     });
     html += "</table><hr/>";
@@ -582,42 +566,13 @@ function renderPharmacyReport(data) {
   document.getElementById("report").innerHTML = html;
   window.lastReportData = data;
 }
-
-// візити до партнерів (беремо з аркуша "Візити")
 function renderPartnerReport(data) {
-  const grouped = {};
-  data.forEach(row => {
-    const key = `${row.userName}_${row.partnerName}_${row.date}_${row.status}`;
-    if (!grouped[key]) {
-      grouped[key] = {
-        userName: row.userName,
-        partner: row.partnerName,
-        date: row.date,
-        status: row.status,
-        comment: row.comment,
-        products: []
-      };
-    }
-    grouped[key].products.push({
-      name: row.product,
-      percent: row.percent,
-      quantity: row.quantity,
-      penetration: row.penetration,
-      stock: row.stock,
-      expiry: row.expiry,
-      competitor: row.competitor,
-      vtm: row.vtm,
-      exclusive: row.exclusive,
-      conditions: row.conditions
-    });
-  });
-
   let html = "";
-  Object.values(grouped).forEach(v => {
+  data.forEach(v => {
     html += `
-      <h3>${v.userName} — ${v.partner} (${v.date})</h3>
-      <p>Статус: ${v.status}</p>
-      <p>Коментар: ${v.comment}</p>
+      <h3>${v.userName} — ${v.partnerName} (${v.date})</h3>
+      <p>Статус: ${v.status || "-"}</p>
+      <p>Коментар: ${v.comment || "-"}</p>
       <table>
         <tr>
           <th>Назва</th><th>%</th><th>Кількість</th><th>Пенетрація</th>
@@ -625,41 +580,28 @@ function renderPartnerReport(data) {
           <th>ВТМ</th><th>Ексклюзив</th><th>Умови %</th>
         </tr>
     `;
-v.products.forEach(p => {
-  // перевіряємо чи є хоча б одне заповнене поле окрім назви
-  const hasData =
-    (p.percent && p.percent !== "") ||
-    (p.quantity && p.quantity !== "") ||
-    (p.penetration && p.penetration !== "") ||
-    (p.stock && p.stock !== "") ||
-    (p.expiry && p.expiry !== "") ||
-    (p.competitor && p.competitor !== "") ||
-    (p.vtm && p.vtm !== "") ||
-    (p.exclusive && p.exclusive !== "") ||
-    (p.conditions && p.conditions !== "");
-
-  if (hasData) {
-    html += `<tr>
-      <td>${p.name}</td>
-      <td>${p.percent || "-"}</td>
-      <td>${p.quantity || "-"}</td>
-      <td>${p.penetration || "-"}</td>
-      <td>${p.stock || "-"}</td>
-      <td>${formatExpiry(p.expiry)}</td>
-      <td>${p.competitor || "-"}</td>
-      <td>${p.vtm || "-"}</td>
-      <td>${p.exclusive || "-"}</td>
-      <td>${p.conditions || "-"}</td>
-    </tr>`;
-  }
-});
-
+    (v.products || []).forEach(p => {
+      const hasData = Object.values(p).some(val => val && val !== "");
+      if (hasData) {
+        html += `<tr>
+          <td>${p.product || p.name || "-"}</td>
+          <td>${p.percent || "-"}</td>
+          <td>${p.quantity || "-"}</td>
+          <td>${p.penetration || "-"}</td>
+          <td>${p.stock || "-"}</td>
+          <td>${formatExpiry(p.expiry)}</td>
+          <td>${p.competitor || "-"}</td>
+          <td>${p.vtm || "-"}</td>
+          <td>${p.exclusive || "-"}</td>
+          <td>${p.conditions || "-"}</td>
+        </tr>`;
+      }
+    });
     html += "</table><hr/>";
   });
   document.getElementById("report").innerHTML = html;
   window.lastReportData = data;
 }
-
 
 function formatExpiry(expiry) {
   if (!expiry) return "-";
@@ -731,23 +673,33 @@ function renderDoctorVisitsReport(data) {
   window.lastReportData = data;
 }
 function populateFilters(data) {
-  const cities = [...new Set(data.map(r => r.city).filter(Boolean))];
-  const lpzs = [...new Set(data.map(r => r.lpz).filter(Boolean))];
-  const specialties = [...new Set(data.map(r => r.specialty).filter(Boolean))];
-
   const citySelect = document.getElementById("cityFilter");
   const lpzSelect = document.getElementById("lpzFilter");
   const specialtySelect = document.getElementById("specialtyFilter");
 
-  // очищаємо перед заповненням
+  // очищаємо
   citySelect.innerHTML = "<option value=''>Всі</option>";
   lpzSelect.innerHTML = "<option value=''>Всі</option>";
   specialtySelect.innerHTML = "<option value=''>Всі</option>";
 
+  const cities = [...new Set(data.map(r => r.city).filter(Boolean))];
   cities.forEach(c => citySelect.innerHTML += `<option value="${c}">${c}</option>`);
-  lpzs.forEach(l => lpzSelect.innerHTML += `<option value="${l}">${l}</option>`);
-  specialties.forEach(s => specialtySelect.innerHTML += `<option value="${s}">${s}</option>`);
+
+  // каскадність
+  citySelect.onchange = () => {
+    const filteredLpzs = [...new Set(data.filter(r => !citySelect.value || r.city === citySelect.value).map(r => r.lpz).filter(Boolean))];
+    lpzSelect.innerHTML = "<option value=''>Всі</option>";
+    filteredLpzs.forEach(l => lpzSelect.innerHTML += `<option value="${l}">${l}</option>`);
+    specialtySelect.innerHTML = "<option value=''>Всі</option>";
+  };
+
+  lpzSelect.onchange = () => {
+    const filteredSpecs = [...new Set(data.filter(r => (!citySelect.value || r.city === citySelect.value) && (!lpzSelect.value || r.lpz === lpzSelect.value)).map(r => r.specialty).filter(Boolean))];
+    specialtySelect.innerHTML = "<option value=''>Всі</option>";
+    filteredSpecs.forEach(s => specialtySelect.innerHTML += `<option value="${s}">${s}</option>`);
+  };
 }
+
 
 function applyFilters(data) {
   const city = document.getElementById("cityFilter").value;
@@ -760,6 +712,53 @@ function applyFilters(data) {
     (!specialty || r.specialty === specialty)
   );
 }
+function renderContactsReport() {
+  const pharmacies = JSON.parse(localStorage.getItem("pharmacyCache")) || [];
+  const partners = JSON.parse(localStorage.getItem("partnerCache")) || [];
+
+  let userKey = currentUser;
+  let selectedUserKey = null;
+  if (userKey === "admin") {
+    selectedUserKey = document.getElementById("userName").value;
+  }
+
+  // об’єднуємо всі візити
+  let allContacts = [...pharmacies, ...partners];
+
+  // фільтрація по користувачу
+  allContacts = allContacts.filter(v => {
+    if (userKey === "admin" && selectedUserKey) {
+      return v.userName === userNames[selectedUserKey];
+    } else {
+      return v.userName === userNames[userKey];
+    }
+  });
+
+  if (!allContacts.length) {
+    document.getElementById("report").innerHTML = "<p>Немає даних</p>";
+    return;
+  }
+
+  let html = "<table>";
+  html += "<tr><th>Користувач</th><th>Партнер/Аптека</th><th>Місто</th><th>Адреса</th><th>Контакт</th></tr>";
+
+  allContacts.forEach(v => {
+    html += `<tr>
+      <td>${v.userName}</td>
+      <td>${v.partnerName || "-"}</td>
+      <td>${v.city || "-"}</td>
+      <td>${v.address || "-"}</td>
+      <td>${v.contactName || "-"} (${v.contactPhone || "-"})</td>
+    </tr>`;
+  });
+
+  html += "</table>";
+  document.getElementById("report").innerHTML = html;
+  window.lastReportData = allContacts;
+}
+
+
+
 
 // дефолтна таблиця
 function renderDefaultTable(data) {
@@ -800,12 +799,58 @@ document.getElementById("productSelect").addEventListener("change", () => {
 ["cityFilter","lpzFilter","specialtyFilter"].forEach(id => {
   document.getElementById(id).addEventListener("change", () => {
     if (currentType === "doctor") {
-      // застосовуємо фільтри до вже завантажених даних
       const filtered = applyFilters(window.lastReportData || []);
       renderDoctorVisitsReport(filtered);
     }
   });
 });
+document.addEventListener("DOMContentLoaded", () => {
+  initPartners(currentUser);
+  initProducts();
+
+  // фонове завантаження календарних візитів
+  preloadCalendarVisits();
+});
+
+async function preloadCalendarVisits() {
+  try {
+    const url = "https://script.google.com/macros/s/AKfycbz_uLWhj_ww5YLdnrdgGWu9l2AGraznsiGjVSV8dnMuPygaK8vJRKlv-7O9Ou0krKzIAA/exec?type=calendar";
+    const res = await fetch(url);
+    const raw = await res.text();
+    const data = JSON.parse(raw);
+
+    localStorage.setItem("calendarCache", JSON.stringify(data));
+    console.log("✅ Календарні візити закешовано:", data.length);
+  } catch (err) {
+    console.error("❌ Помилка при завантаженні календарних візитів:", err);
+  }
+}
+function renderCalendarReport(data) {
+  if (!data || !data.length) {
+    document.getElementById("report").innerHTML = "<p>Немає даних календаря</p>";
+    return;
+  }
+
+  let html = "<table>";
+  html += "<tr><th>Користувач</th><th>Дата</th><th>Час</th><th>Партнер/ЛПЗ</th><th>Місто</th><th>Адреса</th><th>Коментар</th></tr>";
+
+  data.forEach(v => {
+    html += `<tr>
+      <td>${v.userName || "-"}</td>
+      <td>${v.date || "-"}</td>
+      <td>${v.time || "-"}</td>
+      <td>${v.partnerName || v.lpz || "-"}</td>
+      <td>${v.city || "-"}</td>
+      <td>${v.address || "-"}</td>
+      <td>${v.comment || "-"}</td>
+    </tr>`;
+  });
+
+  html += "</table>";
+  document.getElementById("report").innerHTML = html;
+  window.lastReportData = data;
+}
+
 
 function exportToExcel() {
   const data = window.lastReportData || [];
