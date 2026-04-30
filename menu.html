@@ -386,7 +386,7 @@ input, select {
     </select>
     </label>
     <!--<input type="date" id="startDate">-->
-    <select id="specialtyFilter">
+    <select id="specialtyFilter" class="select2">
       <option value="Всі спеціальності">Всі спеціальності</option>
       <option value="Гастроентерологія">Гастроентерологія</option>
       <option value="Отоларингологія">Отоларингологія</option>
@@ -459,6 +459,31 @@ input, select {
     </div>
   </div>
  <img src="./ph.png" alt="logo" width="260">
+ <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const restrictedUsers = ["andriy", "maria", "serhiy"];
+  const currentUser = localStorage.getItem("currentUser") || "admin";
+
+  if (restrictedUsers.includes(currentUser)) {
+    // приховуємо всі кнопки крім "Візити в мережі" та "Вийти"
+    document.querySelectorAll("#menu .buttons button").forEach(btn => {
+      const text = btn.textContent.trim();
+      if (text !== "Візити в мережі" && text !== "Вийти") {
+        btn.style.display = "none";
+      }
+    });
+
+    // приховуємо спідометри
+    document.querySelector(".select2").style.display = "none";
+    document.querySelector(".gauges-container").style.display = "none";
+
+    // залишаємо тільки блоки семисегментників
+    // (вони вже є у другому .dashboard)
+    // якщо треба приховати ще щось — можна додати аналогічно
+  }
+});
+</script>
+
  <script>
 function showLoading() {
   document.getElementById("loadingOverlay").style.visibility = "visible";
