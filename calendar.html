@@ -344,6 +344,10 @@ async function initPartners(user) {
   partnerSelect.innerHTML += `<option value="pharmacy">Аптека</option>`;
 // завжди додаємо «Лікар»
   partnerSelect.innerHTML += `<option value="doctor">Лікар</option>`;
+  //Завжди додаємо "відпустка"
+  partnerSelect.innerHTML += `<option value="leave">Відпустка</option>`;
+  //Завжди додаємо "ЛІКАРНЯНИЙ"
+  partnerSelect.innerHTML += `<option value="hospital">Лікарняний</option>`;
   console.log("▶ initPartners: збережено партнерів", filtered.length);
 }
 

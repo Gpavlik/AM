@@ -1,77 +1,122 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
-  <title>Google Picker Test</title>
-  <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
-  <script type="text/javascript" src="https://apis.google.com/js/client.js"></script>
-  <script type="text/javascript" src="https://apis.google.com/js/picker.js"></script>
+  <meta charset="UTF-8">
+  <title>Звіти по промо та відрядженнях</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #009400, #004d00);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h2 { margin-bottom: 20px; }
+    .filters {
+      background: #008000;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input {
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px;
+      background-color: #004d00;
+      color: #fff;
+      border: solid 1px #c2ffc2;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover { background-color: #003300; }
+  </style>
 </head>
 <body>
-  <button onclick="onApiLoad()">Вибрати фото</button>
+  <h2>Звіти</h2>
+  <img src="./logo.svg" alt="logo" width="260">
+  <div class="filters">
+    <label>Дата початку
+      <input type="date" id="startDate">
+    </label>
+    <label>Дата завершення
+      <input type="date" id="endDate">
+    </label>
 
-  <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
-<script type="text/javascript" src="https://apis.google.com/js/client.js"></script>
-<script type="text/javascript" src="https://apis.google.com/js/picker.js"></script>
+    <button onclick="loadReport('promo')">📊 Показати звіт по промо</button>
+    <button onclick="loadReport('trip')">📊 Показати звіт по відрядженнях</button>
+  </div>
 
+  <div id="report"></div>
+  <button id="downloadBtn" style="display:none;">⬇️ Скачати в Excel</button>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+<img src="./ph.png" alt="logo" width="260">
 <script>
-  const CLIENT_ID = "836855251066-j3e1evke6nddu2m7c9kvhlhl9ere4tvs.apps.googleusercontent.com";
-  const API_KEY = "AIzaSyCqqiVAg1B3hAcxFzCz4rEv98vdTLag3Ck";
-  const FOLDER_ID = "10yVaHb8BRUOynAAfSNiEhoa_aRHBBv8x";
-  const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+    let currentData = [];
 
-  function onApiLoad() {
-    gapi.load('auth', {'callback': onAuthApiLoad});
-    gapi.load('picker');
-  }
+    async function loadReport(type) {
+      const start = document.getElementById("startDate").value;
+      const end = document.getElementById("endDate").value;
 
-  function onAuthApiLoad() {
-    gapi.auth.authorize(
-      {
-        'client_id': CLIENT_ID,
-        'scope': SCOPES,
-        'immediate': false
-      },
-      handleAuthResult
-    );
-  }
+      if (!start || !end) {
+        alert("Будь ласка, виберіть обидві дати!");
+        return;
+      }
 
-  function handleAuthResult(authResult) {
-    if (authResult && !authResult.error) {
-      const oauthToken = authResult.access_token;
-      createPicker(oauthToken);
-    }
-  }
+      const url = `https://script.google.com/macros/s/AKfycbwgtdmK4cygaqutq2m3uvml9ZBJISOlrFmkojvZCJ4yJqtojquw-eUHGzq8gQF_EneAYA/exec?type=${type}&start=${start}&end=${end}`;
+      const res = await fetch(url);
+      currentData = await res.json();
 
-  function createPicker(oauthToken) {
-    const picker = new google.picker.PickerBuilder()
-      .addView(google.picker.ViewId.PHOTOS)
-      .setOAuthToken(oauthToken)
-      .setDeveloperKey(API_KEY)
-      .setCallback(data => pickerCallback(data, oauthToken))
-      .build();
-    picker.setVisible(true);
-  }
+      // Рендеримо таблицю на сторінці
+      const container = document.getElementById("report");
+      container.innerHTML = "";
+      if (currentData.length === 0) {
+        container.innerHTML = "<p>Немає даних за цей період</p>";
+        document.getElementById("downloadBtn").style.display = "none";
+        return;
+      }
 
-  async function pickerCallback(data, oauthToken) {
-    if (data.action === google.picker.Action.PICKED) {
-      const fileId = data.docs[0].id;
+      const table = document.createElement("table");
+      table.border = "1";
+      const headers = Object.keys(currentData[0]);
+      const thead = document.createElement("thead");
+      thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+      table.appendChild(thead);
 
-      // Переміщаємо файл у потрібну папку
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${FOLDER_ID}`, {
-        method: "PATCH",
-        headers: {
-          "Authorization": "Bearer " + oauthToken,
-          "Content-Type": "application/json"
-        }
+      const tbody = document.createElement("tbody");
+      currentData.forEach(row => {
+        tbody.innerHTML += "<tr>" + headers.map(h => `<td>${row[h]}</td>`).join("") + "</tr>";
       });
+      table.appendChild(tbody);
 
-      const updated = await res.json();
-      const fileUrl = "https://drive.google.com/file/d/" + updated.id + "/view";
-      console.log("Фото переміщено у папку:", fileUrl);
-      alert("Фото доступне за адресою: " + fileUrl);
+      container.appendChild(table);
+      document.getElementById("downloadBtn").style.display = "inline-block";
     }
-  }
-</script>
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      const ws = XLSX.utils.json_to_sheet(currentData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Report");
+      XLSX.writeFile(wb, "report.xlsx");
+    });
+  </script>
 </body>
 </html>
