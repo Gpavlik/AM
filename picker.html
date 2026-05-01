@@ -24,7 +24,7 @@
     }
     label {
       display: block;
-      margin-top: 10px;
+      margin-top: 20px;
       font-weight: bold;
     }
     input {
@@ -65,58 +65,98 @@
 
   <div id="report"></div>
   <button id="downloadBtn" style="display:none;">⬇️ Скачати в Excel</button>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  
 <img src="./ph.png" alt="logo" width="260">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-    let currentData = [];
+  let currentData = [];
 
-    async function loadReport(type) {
-      const start = document.getElementById("startDate").value;
-      const end = document.getElementById("endDate").value;
+  // Нормалізація для відображення
+  function normalizeDate(dateString) {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    return d.toLocaleDateString("uk-UA"); // формат DD.MM.YYYY
+  }
 
-      if (!start || !end) {
-        alert("Будь ласка, виберіть обидві дати!");
-        return;
-      }
+  async function loadReport(type) {
+    const start = document.getElementById("startDate").value;
+    const end = document.getElementById("endDate").value;
 
-      const url = `https://script.google.com/macros/s/AKfycbwgtdmK4cygaqutq2m3uvml9ZBJISOlrFmkojvZCJ4yJqtojquw-eUHGzq8gQF_EneAYA/exec?type=${type}&start=${start}&end=${end}`;
-      const res = await fetch(url);
-      currentData = await res.json();
-
-      // Рендеримо таблицю на сторінці
-      const container = document.getElementById("report");
-      container.innerHTML = "";
-      if (currentData.length === 0) {
-        container.innerHTML = "<p>Немає даних за цей період</p>";
-        document.getElementById("downloadBtn").style.display = "none";
-        return;
-      }
-
-      const table = document.createElement("table");
-      table.border = "1";
-      const headers = Object.keys(currentData[0]);
-      const thead = document.createElement("thead");
-      thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
-      table.appendChild(thead);
-
-      const tbody = document.createElement("tbody");
-      currentData.forEach(row => {
-        tbody.innerHTML += "<tr>" + headers.map(h => `<td>${row[h]}</td>`).join("") + "</tr>";
-      });
-      table.appendChild(tbody);
-
-      container.appendChild(table);
-      document.getElementById("downloadBtn").style.display = "inline-block";
+    if (!start || !end) {
+      alert("Будь ласка, виберіть обидві дати!");
+      return;
     }
 
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      const ws = XLSX.utils.json_to_sheet(currentData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Report");
-      XLSX.writeFile(wb, "report.xlsx");
+    const url = `https://script.google.com/macros/s/AKfycbwzFGLbD6cI3jc4HUB6FSLUJoeSohziQIWtRZUS0sAUwLdxFTkb2hV84Ne4mqDUYN8VrQ/exec?type=${type}&start=${start}&end=${end}`;
+    const res = await fetch(url);
+    let data = await res.json();
+
+    // 🔑 Додаткова фільтрація для відряджень
+    if (type === "trip") {
+      // Початок діапазону з 00:00 у локальному часі
+      const [sy, sm, sd] = start.split("-").map(Number);
+      const startDate = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+
+      // Кінець діапазону з 23:59 у локальному часі
+      const [ey, em, ed] = end.split("-").map(Number);
+      const endDate = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+
+      data = data.filter(row => {
+        const depRaw = row["departureDate"] || row["Дата виїзду"] || row["Дата выезда"];
+        if (!depRaw) return false;
+        const dep = new Date(depRaw);
+        return dep >= startDate && dep <= endDate;
+      });
+    }
+
+    currentData = data;
+
+    // Рендеримо таблицю
+    const container = document.getElementById("report");
+    container.innerHTML = "";
+    if (currentData.length === 0) {
+      container.innerHTML = "<p>Немає даних за цей період</p>";
+      document.getElementById("downloadBtn").style.display = "none";
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.border = "1";
+    const headers = Object.keys(currentData[0]);
+    const thead = document.createElement("thead");
+    thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    currentData.forEach(row => {
+      tbody.innerHTML += "<tr>" + headers.map(h => {
+        let val = row[h];
+        if (h.toLowerCase().includes("дата")) {
+          val = normalizeDate(val);
+        }
+        return `<td>${val}</td>`;
+      }).join("") + "</tr>";
     });
-  </script>
+    table.appendChild(tbody);
+
+    container.appendChild(table);
+    document.getElementById("downloadBtn").style.display = "inline-block";
+  }
+
+  // Експорт у Excel
+  document.getElementById("downloadBtn").addEventListener("click", () => {
+    const normalized = currentData.map(r => {
+      let obj = {};
+      for (let h in r) {
+        obj[h] = h.toLowerCase().includes("дата") ? normalizeDate(r[h]) : r[h];
+      }
+      return obj;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(normalized);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Report");
+    XLSX.writeFile(wb, "report.xlsx");
+  });
+</script>
 </body>
 </html>
