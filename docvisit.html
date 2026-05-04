@@ -238,6 +238,7 @@ select.error {
     </label>
     <label>Спеціальність:<select id="specialtySelect"></select>    </label>
     <label>Лікар:<select id="doctorSelect"></select></label>
+     <button class="btn" onclick="goTo('newdoc.html')">Додати лікаря</button>
   </div>
 
   <h3>Попередній візит</h3>
@@ -277,7 +278,9 @@ select.error {
   <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-
+function goTo(page) {
+  window.location.href = page;
+}
 // Користувачі
 const userNames = {
   fedir: "Олександр Красніков",
@@ -296,12 +299,11 @@ if (!currentUser) {
   document.getElementById("userInfo").textContent =
     "Ви увійшли як: " + (userNames[currentUser] || currentUser);
 }
-
 let doctorsData = [];
 
 // 1. Отримання даних з Google Sheets
 async function fetchDoctors() {
-  const url = "https://docs.google.com/spreadsheets/d/1T9Xe8ep24tcg4LIsD-jpmGPkE5mGcsyo/gviz/tq?tqx=out:json&sheet=Sheet1";
+  const url = "https://docs.google.com/spreadsheets/d/1qDgXP8HJgP7R90u33me9ENAKcAQwdpu_b6YJvL9E48Y/gviz/tq?tqx=out:json&sheet=Sheet1";
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substr(47).slice(0, -2));
@@ -725,18 +727,24 @@ function validateVisitForm() {
 }
 async function loadPreviousVisit(doctorName) {
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbz_uLWhj_ww5YLdnrdgGWu9l2AGraznsiGjVSV8dnMuPygaK8vJRKlv-7O9Ou0krKzIAA/exec?type=doctor&doctor=" + encodeURIComponent(doctorName));
+    const res = await fetch(
+      "https://script.google.com/macros/s/AKfycbz_uLWhj_ww5YLdnrdgGWu9l2AGraznsiGjVSV8dnMuPygaK8vJRKlv-7O9Ou0krKzIAA/exec?type=doctor&doctor=" 
+      + encodeURIComponent(doctorName)
+    );
     const visits = await res.json();
 
     const tbody = document.getElementById("previousVisitBody");
     tbody.innerHTML = "";
 
-    if (visits.length > 0) {
-      // знаходимо останню дату
-      const lastDate = visits[visits.length - 1].date;
+    // 👉 фільтруємо тільки візити до цього лікаря
+    const doctorVisits = visits.filter(v => v.doctor === doctorName);
+
+    if (doctorVisits.length > 0) {
+      // знаходимо останню дату серед цього лікаря
+      const lastDate = doctorVisits[doctorVisits.length - 1].date;
 
       // фільтруємо всі рядки з цією датою
-      const lastVisits = visits.filter(v => v.date === lastDate);
+      const lastVisits = doctorVisits.filter(v => v.date === lastDate);
 
       lastVisits.forEach(v => {
         const tr = document.createElement("tr");
@@ -750,7 +758,7 @@ async function loadPreviousVisit(doctorName) {
       });
     } else {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="7">Попередніх візитів не знайдено</td>`;
+      tr.innerHTML = `<td colspan="7">Попередніх візитів до цього лікаря не знайдено</td>`;
       tbody.appendChild(tr);
     }
   } catch (err) {
@@ -759,6 +767,7 @@ async function loadPreviousVisit(doctorName) {
     tbody.innerHTML = `<tr><td colspan="7">Не вдалося підтягнути попередній візит (CORS)</td></tr>`;
   }
 }
+
 
 
 </script>

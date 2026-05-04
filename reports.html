@@ -366,7 +366,11 @@ let visits = [];        // глобально зберігаємо дані
 function initPartners(userKey) {
   const partners = JSON.parse(localStorage.getItem("partners")) || [];
   const ids = userMap[userKey] || [];
-  const filtered = (userKey === "admin") ? partners : partners.filter(p => ids.includes(Number(p.id)));
+
+  // Перевіряємо типи: приводимо все до рядка
+  const filtered = (userKey === "admin") 
+    ? partners 
+    : partners.filter(p => ids.map(String).includes(String(p.id)));
 
   const partnerSelect = $("#partnerSelect");
   partnerSelect.empty();
@@ -374,16 +378,22 @@ function initPartners(userKey) {
     partnerSelect.append(new Option(p.name, p.name));
   });
 
-  // ініціалізація Select2
-  partnerSelect.select2({
-    placeholder: "Оберіть партнера",
-    allowClear: true
-  });
+  // Якщо Select2 вже ініціалізований — просто оновлюємо
+  if (partnerSelect.hasClass("select2-hidden-accessible")) {
+    partnerSelect.trigger("change");
+  } else {
+    partnerSelect.select2({
+      placeholder: "Оберіть партнера",
+      allowClear: true,
+      width: '300px'
+    });
+  }
 
   partnerSelect.on("change", function() {
     selectedPartnerName = $(this).val() || [];
   });
 }
+
 // ініціалізація продуктів
 function initProducts() {
   const productSelect = $("#productSelect");
