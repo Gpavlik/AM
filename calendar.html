@@ -418,18 +418,30 @@ eventDrop: function(info) {
 
 function renderVisits(visits) {
   calendar.getEvents().forEach(e => e.remove());
+
   visits.forEach(v => {
     const startDateTime = normalizeDate(v.date, v.time);
+    if (!(startDateTime instanceof Date) || isNaN(startDateTime.getTime())) {
+      console.warn("Некоректна дата у візиті:", v);
+      return;
+    }
+
     const endDateTime = new Date(startDateTime);
     endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+
     calendar.addEvent({
       id: v.visitId,
-      title: `${v.status}: ${v.partnerName}`,
+      title: `${v.status}: ${v.partnerName}`, // 👈 краще використовувати doctor
       start: startDateTime,
-      end: endDateTime.toISOString(),
+      end: endDateTime,
       extendedProps: v
     });
   });
+}
+function normalizeDate(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null;
+  const date = new Date(dateStr + "T" + timeStr);
+  return isNaN(date.getTime()) ? null : date;
 }
 // Функція показу модалки підтвердження
 function showConfirmModal(message, onYes, onNo) {
@@ -809,14 +821,19 @@ function renderVisits(visits) {
 
   visits.forEach(v => {
     const startDateTime = normalizeDate(v.date, v.time);
+    if (isNaN(startDateTime.getTime())) {
+      console.warn("Некоректна дата/час у візиті:", v);
+      return; // пропускаємо цей запис
+    }
+
     const endDateTime = new Date(startDateTime);
     endDateTime.setMinutes(endDateTime.getMinutes() + 30);
 
     calendar.addEvent({
       id: v.visitId,
-      title: `${v.status}: ${v.partnerName}`,
+      title: `${v.status}: ${v.partnerName}`, // 👈 краще використовувати doctor, а не partnerName
       start: startDateTime,
-      end: endDateTime.toISOString(),
+      end: endDateTime, // можна передати Date напряму
       extendedProps: v
     });
   });
@@ -831,17 +848,30 @@ function getPartnerIdByName(name) {
 }
 
 function normalizeDate(dateStr, timeStr) {
-    dateStr = String(dateStr).trim();
-    timeStr = String(timeStr || "").trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      return timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T00:00`;
-    }
-       if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
-      const [day, month, year] = dateStr.split(".");
-      return timeStr ? `${year}-${month}-${day}T${timeStr}` : `${year}-${month}-${day}T00:00`;
-    }
-    return timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T00:00`;
+  dateStr = String(dateStr || "").trim();
+  timeStr = String(timeStr || "").trim();
+
+  // формат YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(`${dateStr}T${timeStr || "00:00"}`);
   }
+
+  // формат DD.MM.YYYY
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split(".");
+    return new Date(`${year}-${month}-${day}T${timeStr || "00:00"}`);
+  }
+
+  // формат "YYYY-MM-DD HH:MM"
+  if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}$/.test(dateStr + " " + timeStr)) {
+    const [d, t] = (dateStr + " " + timeStr).split(" ");
+    return new Date(`${d}T${t}`);
+  }
+
+  // fallback
+  return new Date(`${dateStr}T${timeStr || "00:00"}`);
+}
+
   function startVisit(event) {
   const now = new Date();
   const currentDate = now.toISOString().slice(0,10); // yyyy-MM-dd
