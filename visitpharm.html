@@ -152,8 +152,32 @@ td.to-sell { text-align: center; font-weight: bold; color: white; }
   .date-time-partner, .date-knowledge {
     grid-template-columns: repeat(2, 1fr); /* дві колонки */
   }
+}.modal {
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
 }
-
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+.spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 </style>
 <body>
   <h1>Візит в аптеку</h1>
@@ -231,13 +255,20 @@ td.to-sell { text-align: center; font-weight: bold; color: white; }
 <!--<div id="photoPreview" style="margin-top:10px;">
   <img id="previewImg" src="" alt="Прев’ю фото" style="max-width:200px; display:none; border:1px solid #ccc;"/>
 </div>-->
-  <button type="button" onclick="savePharmacyVisit()">Зберегти візит</button>
+  <button type="button" id="saveVisitBtn">Зберегти візит</button>
    <button><a style="text-decoration: none; color: white;" href="calendar.html">Перейти в календар</a></button>
 <a href="menu.html"><button>Перейти в меню</button></a>
   </div>    
 </form>
 
   <img src="./ph.png" alt="logo" width="260">
+  <!-- Модалка очікування -->
+<div id="loadingModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="spinner"></div>
+    <p>Збереження даних... будь ласка, зачекайте</p>
+  </div>
+</div>
 <script>
 // Зчитуємо userName з URL або localStorage
 function getQueryParam(name) {
@@ -417,6 +448,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+document.getElementById('saveVisitBtn').onclick = async () => {
+  // показуємо модалку очікування
+  document.getElementById('loadingModal').style.display = 'flex';
+
+  try {
+    await savePharmacyVisit(); // твоя функція відправки на бекенд
+      // невелика пауза, щоб бекенд встиг записати
+    setTimeout(() => {
+      location.reload();
+    }, 8000);// після успішного збереження — оновлення сторінки
+     } catch (err) {
+    alert("Помилка при збереженні даних");
+    console.error(err);
+    // ховаємо модалку, щоб користувач міг повторити дію
+    document.getElementById('loadingModal').style.display = 'none';
+  }
+};
+
+
+
 function savePharmacyVisit() {
   const rows = document.querySelectorAll("#productsTable tbody tr");
   const productsData = [];
@@ -510,7 +561,7 @@ if (!visitId) {
       }
 
       alert("Аптечний візит збережено!");
-      location.reload();
+      //location.reload();
     } catch (err) {
       console.error("Помилка збереження:", err);
       alert("Не вдалося зберегти візит");

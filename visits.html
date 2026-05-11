@@ -147,7 +147,32 @@ td.to-sell {
   table { font-size: 0.75rem; }
   th, td { padding: 4px; }
 }
-
+.modal {
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+.spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 </style>
 <body>
   <h1>Візити</h1>
@@ -228,6 +253,12 @@ td.to-sell {
   <a href="menu.html"><button>Перейти в меню</button></a>
 </div>
 <img src="./ph.png" alt="logo" width="260">
+<div id="loadingModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="spinner"></div>
+    <p>Збереження даних... будь ласка, зачекайте</p>
+  </div>
+</div>
 <script type="module">
 // ===== Користувачі та партнери =====
 const userNames = {
@@ -473,6 +504,7 @@ function renderCurrentVisit() {
 
 // ===== Збереження даних візиту до партнера =====
 document.getElementById("sendReport").addEventListener("click", async () => {
+  document.getElementById('loadingModal').style.display = 'flex';
   const contactName = document.getElementById("contactName").value;
   const contactPhone = document.getElementById("contactPhone").value;
   const status = document.getElementById("visitStatus").value;
@@ -597,10 +629,13 @@ if (!visitId) {
       });
 
       alert("Візит збережено (без координат)!");
+ setTimeout(() => {
       location.reload();
+    }, 8000);
     } catch (err2) {
       console.error("Помилка збереження:", err2);
       alert("Не вдалося зберегти візит");
+      document.getElementById('loadingModal').style.display = 'none';
     }
   });
 });

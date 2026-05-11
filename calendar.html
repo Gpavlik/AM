@@ -416,7 +416,7 @@ eventDrop: function(info) {
   loadVisits();
 });
 
-function renderVisits(visits) {
+/*function renderVisits(visits) {
   calendar.getEvents().forEach(e => e.remove());
 
   visits.forEach(v => {
@@ -437,7 +437,7 @@ function renderVisits(visits) {
       extendedProps: v
     });
   });
-}
+}*/
 function normalizeDate(dateStr, timeStr) {
   if (!dateStr || !timeStr) return null;
   const date = new Date(dateStr + "T" + timeStr);
@@ -481,8 +481,23 @@ function styleEvent(info) {
   // зберігаємо посилання на елемент
   info.event.setExtendedProp('elRef', info.el);
 }
+
+// допоміжна функція для зміни статусу
+async function markAsDone(event) {
+  event.setExtendedProp('status', 'Виконано');
+  event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
+
+  const el = event.extendedProps.elRef;
+  if (el) styleEvent({ event, el });
+
+  await updateStatusInBackend(event, 'Виконано');
+}
+
+
+
 function handleEventClick(info) {
   const event = info.event;
+  const visitId = event.extendedProps.visitId; // унікальний ID
   const status = event.extendedProps.status;
   const visitDate = new Date(event.start);
   const today = new Date();
@@ -499,42 +514,59 @@ function handleEventClick(info) {
   document.getElementById('visitModal').style.display = 'block';
 
   // Кнопка "Почати"
-document.getElementById('startBtn').onclick = async () => {
-  if (isPast) {
-    alert("Неможливо почати візит у минулому");
-    return;
-  }
+document.getElementById('startBtn').onclick = () => {
+  showConfirmModal("Ви справді хочете почати цей візит?", async () => {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const visitDay = new Date(event.start); visitDay.setHours(0,0,0,0);
+    if (visitDay < today) {
+      alert("Неможливо почати візит у минулому");
+      return;
+    }
 
-  const userName = event.extendedProps.userName;
-  const visitId = event.extendedProps.visitId; // 🆕 беремо VisitID з календаря
+    const userName = event.extendedProps.userName;
+    const visitId = event.extendedProps.visitId;
+     // бекенд — дочекайся завершення
+    await updateStatusInBackend(event, 'Виконано');
 
-  if (event.extendedProps.partnerId === "pharmacy" || event.extendedProps.partnerName === "Аптека") {
-    window.location.href = `visitpharm.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
-    return;
-  }
+    // закриваємо модалку
+    document.getElementById('visitModal').style.display = 'none';
+    
+    // 🔀 редиректи по типу партнера
+    if (event.extendedProps.partnerId === "pharmacy" || event.extendedProps.partnerName === "Аптека") {
+      window.location.href = `visitpharm.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
+      return;
+    }
 
-  if (event.extendedProps.partnerId === "doctor" || event.extendedProps.partnerName === "Лікар") {
-    window.location.href = `docvisit.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
-    return;
-  }
+    if (event.extendedProps.partnerId === "doctor" || event.extendedProps.partnerName === "Лікар") {
+      window.location.href = `docvisit.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
+      return;
+    }
 
-  if (event.extendedProps.partnerId === "partner" || event.extendedProps.partnerName === "Партнер") {
-    window.location.href = `partnervisit.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
-    return;
-  }
+    if (event.extendedProps.partnerId === "partner" || event.extendedProps.partnerName === "Партнер") {
+      window.location.href = `partnervisit.html?userName=${encodeURIComponent(userName)}&visitId=${visitId}`;
+      return;
+    }
 
-  // ✅ міняємо тільки статус локально
-  event.setExtendedProp('status', 'Виконано');
-  event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
+    // 🟢 інші випадки — просто статус "Виконано"
+    event.setExtendedProp('status', 'Виконано');
+    event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
 
-  const el = event.extendedProps.elRef;
-  if (el) styleEvent({ event: event, el: el });
+    const el = event.extendedProps.elRef;
+    if (el) styleEvent({ event, el });
 
-  // ✅ синхронізація з localStorage і бекендом
-  await updateStatusInBackend(event, 'Виконано');
+    // бекенд — дочекайся завершення
+    await updateStatusInBackend(event, 'Виконано');
 
-  // перехід на сторінку візиту
-  window.location.href = `visits.html?partnerId=${event.extendedProps.partnerId}&visitId=${visitId}`;
+    // закриваємо модалку
+    document.getElementById('visitModal').style.display = 'none';
+
+    // редирект з паузою
+    /*setTimeout(() => {
+      window.location.href = `visits.html?partnerId=${event.extendedProps.partnerId}&visitId=${visitId}`;
+    }, 800);*/
+  }, () => {
+    // нічого не робимо
+  });
 };
 
 
@@ -577,6 +609,7 @@ document.getElementById('startBtn').onclick = async () => {
       }
 
       updateDateInBackend(event, newDate, newTime);
+      updateStatusInBackend(event, 'Перенесено');
       document.getElementById('visitModal').style.display = 'none';
     };
   }
@@ -590,6 +623,16 @@ document.getElementById('startBtn').onclick = async () => {
       // нічого не робимо
     });
   };
+}
+function updateLocalStorageStatus(visitId, newStatus) {
+  const visits = JSON.parse(localStorage.getItem("visits")) || [];
+  const updated = visits.map(v => {
+    if (v.visitId == visitId) {
+      return { ...v, status: newStatus };
+    }
+    return v;
+  });
+  localStorage.setItem("visits", JSON.stringify(updated));
 }
 
 
@@ -634,6 +677,11 @@ document.getElementById("applyFilterBtn").addEventListener("click", () => {
   filterVisits();
 });
 
+function padTime(timeStr) {
+  const [h, m] = timeStr.split(":");
+  return `${h.padStart(2,"0")}:${m}`;
+}
+
 function filterVisits() {
   const selectedPartner = document.getElementById("partnerSelect").value;
   const selectedStatus = document.getElementById("statusFilter").value;
@@ -644,14 +692,19 @@ function filterVisits() {
 
   // фільтруємо
   const filtered = allVisits.filter(v => {
-    const partnerMatch = (selectedPartner === "all" || v.partnerId == selectedPartner);
+    const partnerMatch = (selectedPartner === "all" || v.partnerName === selectedPartner);
     const statusMatch = (selectedStatus === "all" || v.status === selectedStatus);
     return partnerMatch && statusMatch;
   });
 
   // додаємо у календар
   filtered.forEach(v => {
-    const startDateTime = normalizeDate(v.date, v.time);
+    const startDateTime = new Date(`${v.date}T${padTime(v.time)}`);
+    if (isNaN(startDateTime.getTime())) {
+      console.warn("Некоректна дата/час:", v);
+      return;
+    }
+
     const endDateTime = new Date(startDateTime);
     endDateTime.setMinutes(endDateTime.getMinutes() + 30);
 
@@ -659,13 +712,11 @@ function filterVisits() {
       id: v.visitId,
       title: `${v.status}: ${v.partnerName}`,
       start: startDateTime,
-      end: endDateTime.toISOString(),
+      end: endDateTime,
       extendedProps: v
     });
   });
 }
-
-
 
 async function updateDateInBackend(event, newDate, newTime) {
   const today = new Date();
@@ -794,19 +845,16 @@ async function loadVisits() {
     const currentUserKey = localStorage.getItem("currentUser");
     const currentUserName = userNames[currentUserKey];
 
-    // локальні дані
     let localVisits = JSON.parse(localStorage.getItem("visits")) || [];
-
-    // малюємо локальні
     renderVisits(localVisits);
 
     // тягнемо бекенд
     const res = await fetch("https://script.google.com/macros/s/AKfycbz_uLWhj_ww5YLdnrdgGWu9l2AGraznsiGjVSV8dnMuPygaK8vJRKlv-7O9Ou0krKzIAA/exec?type=calendar");
-    const backendVisits = await res.json();
+     if (!res.ok) throw new Error("Backend error: " + res.status);
 
+    const backendVisits = await res.json();
     const myVisits = backendVisits.filter(v => v.userName === currentUserName);
 
-    // якщо різниця — оновлюємо localStorage і перемальовуємо
     if (JSON.stringify(localVisits) !== JSON.stringify(myVisits)) {
       localStorage.setItem("visits", JSON.stringify(myVisits));
       renderVisits(myVisits);
@@ -814,6 +862,7 @@ async function loadVisits() {
   } catch (err) {
     console.error("Помилка завантаження:", err);
   }
+
 }
 
 function renderVisits(visits) {
@@ -823,7 +872,7 @@ function renderVisits(visits) {
     const startDateTime = normalizeDate(v.date, v.time);
     if (isNaN(startDateTime.getTime())) {
       console.warn("Некоректна дата/час у візиті:", v);
-      return; // пропускаємо цей запис
+      return;
     }
 
     const endDateTime = new Date(startDateTime);
@@ -831,13 +880,14 @@ function renderVisits(visits) {
 
     calendar.addEvent({
       id: v.visitId,
-      title: `${v.status}: ${v.partnerName}`, // 👈 краще використовувати doctor, а не partnerName
+      title: `${v.status}: ${v.partnerName}`,
       start: startDateTime,
-      end: endDateTime, // можна передати Date напряму
+      end: endDateTime,
       extendedProps: v
     });
   });
 }
+
 
 
 
@@ -848,46 +898,17 @@ function getPartnerIdByName(name) {
 }
 
 function normalizeDate(dateStr, timeStr) {
-  dateStr = String(dateStr || "").trim();
-  timeStr = String(timeStr || "").trim();
-
-  // формат YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return new Date(`${dateStr}T${timeStr || "00:00"}`);
+  // якщо час у форматі "8:00" → перетворюємо на "08:00"
+  if (timeStr) {
+    const [h, m] = timeStr.split(":");
+    const hh = h.padStart(2, "0");
+    timeStr = `${hh}:${m}`;
+  } else {
+    timeStr = "00:00";
   }
 
-  // формат DD.MM.YYYY
-  if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
-    const [day, month, year] = dateStr.split(".");
-    return new Date(`${year}-${month}-${day}T${timeStr || "00:00"}`);
-  }
-
-  // формат "YYYY-MM-DD HH:MM"
-  if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}$/.test(dateStr + " " + timeStr)) {
-    const [d, t] = (dateStr + " " + timeStr).split(" ");
-    return new Date(`${d}T${t}`);
-  }
-
-  // fallback
-  return new Date(`${dateStr}T${timeStr || "00:00"}`);
+  return new Date(`${dateStr}T${timeStr}`);
 }
-
-  function startVisit(event) {
-  const now = new Date();
-  const currentDate = now.toISOString().slice(0,10); // yyyy-MM-dd
-  const currentTime = now.toTimeString().slice(0,5); // HH:mm
-
-  // локально змінюємо статус і заголовок
-  event.setExtendedProp('status', 'Виконано');
-  event.setProp('title', `Виконано: ${event.extendedProps.partnerName}`);
-
-  const el = event.extendedProps.elRef;
-  if (el) styleEvent({ event: event, el: el });
-
-  // головне — викликати бекенд‑оновлення
-  updateDateInBackend(event, currentDate, currentTime);
-}
-
 // Календарик: тільки сьогодні і майбутнє, без суботи й неділі
 flatpickr("#visitDate", {
   dateFormat: "Y-m-d",

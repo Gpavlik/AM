@@ -223,6 +223,18 @@ select.error {
   color: #fff;
 }
 
+.spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
   </style>
 </head>
 <body>
@@ -258,7 +270,7 @@ select.error {
 <div class="buttons">  
 
   
-  <button style="background-color: #4caf50;"  onclick="saveDoctorVisit()">Зберегти візит</button>
+  <button style="background-color: #4caf50;" id="saveVisitBtn">Зберегти візит</button>
   <button onclick="window.location.href='calendar.html'">Перейти в календар</button>
   <button onclick="window.location.href='menu.html'">Перейти в меню</button>
 </div>
@@ -271,8 +283,12 @@ select.error {
     <div class="slide-controls" id="pagePanel"></div>
   </div>
 </div>
-
-
+<div id="loadingModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="spinner"></div>
+    <p>Збереження даних... будь ласка, зачекайте</p>
+  </div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"></script>
   <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
@@ -603,6 +619,24 @@ window.onclick = (event) => {
   if (event.target === modal) modal.style.display = "none";
 };
 
+document.getElementById('saveVisitBtn').onclick = async () => {
+  // показуємо модалку очікування
+  document.getElementById('loadingModal').style.display = 'flex';
+
+  try {
+    await saveDoctorVisit(); // твоя функція відправки на бекенд
+      // невелика пауза, щоб бекенд встиг записати
+    setTimeout(() => {
+      location.reload();
+    }, 8000);// після успішного збереження — оновлення сторінки
+     } catch (err) {
+    alert("Помилка при збереженні даних");
+    console.error(err);
+    // ховаємо модалку, щоб користувач міг повторити дію
+    document.getElementById('loadingModal').style.display = 'none';
+  }
+};
+
 async function saveDoctorVisit() {
   if (!validateVisitForm()) return;
 
@@ -671,7 +705,7 @@ if (!visitId) {
         headers: { "Content-Type": "application/json" }
       });
       alert("Візит відправлено на збереження!");
-      location.reload();
+      document.getElementById('loadingModal').style.display = 'none';
     } catch (error) {
       console.error("Помилка при збереженні:", error);
       alert("Сталася помилка при збереженні візиту.");

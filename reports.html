@@ -466,6 +466,8 @@ async function loadReport(type) {
 
       return matchUser && matchDate && matchPartner && matchProduct;
     });
+    // 🆕 застосовуємо дедуплікацію
+    data = deduplicateVisits(data);
   }
 
   // перед рендером ховаємо всі додаткові фільтри
@@ -521,6 +523,28 @@ document.getElementById("productSelect").addEventListener("change", () => {
     }
   });
 });
+
+function deduplicateVisits(data) {
+  const grouped = {};
+
+  data.forEach(row => {
+    // ключ: дата + ідентифікатор (партнер/лікар/аптека)
+    const key = `${row.date}_${row.partnerName || row.doctor || row.pharmacy}`;
+
+    if (!grouped[key]) {
+      grouped[key] = row;
+    } else {
+      // залишаємо той, що пізніше за часом
+      const existingTime = grouped[key].time || "00:00";
+      const newTime = row.time || "00:00";
+      if (newTime > existingTime) {
+        grouped[key] = row;
+      }
+    }
+  });
+
+  return Object.values(grouped);
+}
 
 
 function resetFilters() {
@@ -884,4 +908,3 @@ function exportToExcel() {
 </script>
 </body>
 </html>
-
