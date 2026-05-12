@@ -94,17 +94,19 @@ document.getElementById("loginBtn").addEventListener("click", async function() {
 
   try {
     const response = await fetch("https://script.google.com/macros/s/AKfycbyw4XPYemQbvxJ3IG1DIIbVOQhDjKlM3PR_dKwRWyO24hM_MdhcntM3bmcpk6gko7ff/exec", {
-      method: "POST",
-      // 👈 додаємо цей режим
-      body: JSON.stringify({ action: "login", userName: u, password: p }),
-      headers: { "Content-Type": "application/json" }
+     method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "login", userName: u, password: p })
     });
 
-    // У режимі no-cors відповідь недоступна
-    // Тому тут можна просто редіректити користувача
-    localStorage.setItem("currentUser", u);
-    window.location.href = "menu.html";
+    const result = await response.json();
 
+    if (result.success) {
+      localStorage.setItem("currentUser", u);
+      window.location.href = "menu.html";
+    } else {
+      alert("Невірний пароль!");
+    }
   } catch (err) {
     alert("Помилка з’єднання з сервером!");
     console.error(err);
