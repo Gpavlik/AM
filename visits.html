@@ -156,7 +156,7 @@ td.to-sell {
   display: flex; align-items: center; justify-content: center;
 }
 .modal-content {
-  background: #fff;
+  background: linear-gradient(135deg, #009400, #004d00);
   padding: 20px;
   border-radius: 8px;
   text-align: center;
@@ -631,7 +631,7 @@ if (!visitId) {
       alert("Візит збережено (без координат)!");
  setTimeout(() => {
       location.reload();
-    }, 8000);
+    }, 30000);
     } catch (err2) {
       console.error("Помилка збереження:", err2);
       alert("Не вдалося зберегти візит");

@@ -161,7 +161,7 @@ td.to-sell { text-align: center; font-weight: bold; color: white; }
   display: flex; align-items: center; justify-content: center;
 }
 .modal-content {
-  background: #fff;
+  background: linear-gradient(135deg, #009400, #004d00);
   padding: 20px;
   border-radius: 8px;
   text-align: center;
@@ -457,7 +457,7 @@ document.getElementById('saveVisitBtn').onclick = async () => {
       // невелика пауза, щоб бекенд встиг записати
     setTimeout(() => {
       location.reload();
-    }, 8000);// після успішного збереження — оновлення сторінки
+    }, 30000);// після успішного збереження — оновлення сторінки
      } catch (err) {
     alert("Помилка при збереженні даних");
     console.error(err);
