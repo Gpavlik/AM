@@ -348,8 +348,10 @@ async function initPartners(user) {
   partnerSelect.innerHTML += `<option value="leave">Відпустка</option>`;
   //Завжди додаємо "ЛІКАРНЯНИЙ"
   partnerSelect.innerHTML += `<option value="hospital">Лікарняний</option>`;
-  console.log("▶ initPartners: збережено партнерів", filtered.length);
-}
+  //Завжди додаємо Задача
+  partnerSelect.innerHTML += `<option value="task">Задача</option>`;
+    console.log("▶ initPartners: збережено партнерів", filtered.length);
+  }
 
 
 let calendar;
